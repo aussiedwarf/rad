@@ -1,0 +1,12 @@
+[package]
+name = "painter"
+version = "0.1.0"
+authors = ["Eden Harris <aussiedwarf@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+#"bundled", "static-link", "ttf",
+[dependencies]
+sdl2 = { version = "0.34.3", default-features = false, features = ["static-link", "bundled", "raw-window-handle"] }
+gl = "0.14.0"
