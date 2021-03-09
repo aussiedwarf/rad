@@ -1,7 +1,13 @@
 extern crate sdl2;
+//extern crate raw_window_handle;
+extern crate libc;
 
+//mod gpu;
 
-use sdl2::pixels::Color;
+use crate::gpu;
+
+use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
+
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
@@ -39,9 +45,10 @@ pub struct MainWindow{
   //canvas: sdl2::render::WindowCanvas
 }
 
-impl MainWindow {
 
-  pub fn init() -> Result<MainWindow, WindowError>  {
+
+impl MainWindow {
+  pub fn init(a_gpu_type: gpu::GpuType) -> Result<MainWindow, WindowError>  {
     let width: i32 = 800;
     let height: i32 = 600;
     let sdl_context = match sdl2::init(){
@@ -54,6 +61,7 @@ impl MainWindow {
       Err(res) => return Err(WindowError::SdlInitError)
     };
 
+    /*
     let window: sdl2::video::Window = match video_subsystem.window("rust-sdl2 demo", width as u32, height as u32)
       .position_centered()
       .allow_highdpi()
@@ -63,10 +71,36 @@ impl MainWindow {
         Ok(res) => res,
         Err(res) => return Err(WindowError::SdlWindowError)
       };
-  
+      */
+    let window_name = "rust-sdl2 demo";
 
-    //let canvas = window.into_canvas().build().unwrap();
+    let window = match a_gpu_type {
+      OpenGL => init_window_opengl(&video_subsystem, window_name, width as u32, height as u32),
+      Vulkan => init_window_vulkan(&video_subsystem, window_name, width as u32, height as u32),
+      _ => init_window(&video_subsystem, window_name, width as u32, height as u32)
+    };
+      
+    let window = match window {
+      Ok(res) => res,
+      Err(res) => return Err(WindowError::SdlWindowError)
+    };
+
+    let raw_windows_handle = window.raw_window_handle();
+
     
+    #[cfg(target_os = "windows")]
+    println!("Windows");
+    #[cfg(any(
+      target_os = "linux",
+      target_os = "dragonfly",
+      target_os = "freebsd",
+      target_os = "netbsd",
+      target_os = "openbsd",
+    ))]
+    println!("Linux");
+    
+    //window.
+
     /*
     let gl_context = match window.gl_create_context() {
       Ok(res) => res,
@@ -133,6 +167,32 @@ impl MainWindow {
       ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
   }
+}
+
+fn init_window(a_video_subsystem: &sdl2::VideoSubsystem, a_name: &str, a_width: u32, a_height: u32) -> Result<sdl2::video::Window, sdl2::video::WindowBuildError> {
+  a_video_subsystem.window(a_name, a_width, a_height)
+      .position_centered()
+      .allow_highdpi()
+      .resizable()
+      .build()
+}
+
+fn init_window_opengl(a_video_subsystem: &sdl2::VideoSubsystem, a_name: &str, a_width: u32, a_height: u32) -> Result<sdl2::video::Window, sdl2::video::WindowBuildError> {
+  a_video_subsystem.window(a_name, a_width, a_height)
+      .position_centered()
+      .allow_highdpi()
+      .resizable()
+      .opengl()
+      .build()
+}
+
+fn init_window_vulkan(a_video_subsystem: &sdl2::VideoSubsystem, a_name: &str, a_width: u32, a_height: u32) -> Result<sdl2::video::Window, sdl2::video::WindowBuildError> {
+  a_video_subsystem.window(a_name, a_width, a_height)
+      .position_centered()
+      .allow_highdpi()
+      .resizable()
+      .vulkan()
+      .build()
 }
 
 fn init_gl_context(a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> Result<sdl2::video::GLContext, WindowError> {

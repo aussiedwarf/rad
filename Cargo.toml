@@ -10,3 +10,6 @@ edition = "2018"
 [dependencies]
 sdl2 = { version = "0.34.3", default-features = false, features = ["static-link", "bundled", "raw-window-handle"] }
 gl = "0.14.0"
+nfd2 = "0.2.3"
+raw-window-handle = "0.3.3"
+libc = "0.2"
