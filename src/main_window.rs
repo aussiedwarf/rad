@@ -5,6 +5,7 @@ extern crate libc;
 //mod gpu;
 
 use crate::gpu;
+use crate::gpu::Gpu;
 
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 
@@ -101,15 +102,9 @@ impl MainWindow {
     
     //window.
 
-    /*
-    let gl_context = match window.gl_create_context() {
-      Ok(res) => res,
-      Err(res) => {
-        eprintln!("{}", res);
-        return Err(WindowError::SdlGlError)
-      }
-    };
-    */
+    //Box<dyn gpu::Gpu>
+    let gp = init_gpu(a_gpu_type);
+
     let gl_context = match init_gl_context(&video_subsystem, &window) {
       Ok(res) => res,
       Err(res) => return Err(WindowError::SdlGlError)
@@ -166,6 +161,14 @@ impl MainWindow {
       //self.canvas.present();
       ::std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
     }
+  }
+}
+
+fn init_gpu(a_gpu_type: gpu::GpuType) -> Box<dyn gpu::Gpu> {
+  match a_gpu_type {
+    gpu::GpuType::OpenGL => Box::new(gpu::GpuOpenGL::new()),
+    gpu::GpuType::Vulkan => Box::new(gpu::GpuVulkan::new()),
+    _ => panic!("Unknown gpu type")
   }
 }
 
