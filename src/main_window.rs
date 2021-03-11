@@ -18,7 +18,7 @@ use std::fmt;
 pub enum WindowError {
   SdlInitError,
   SdlWindowError,
-  SdlGlError,
+  SdlGpuError,
   Error
 }
 
@@ -29,7 +29,7 @@ impl fmt::Display for WindowError {
     match self {
       WindowError::Error => write!(f, "Error"),
       WindowError::SdlInitError => write!(f, "Sdl Init Error"),
-      WindowError::SdlGlError => write!(f, "Gl Init Error"),
+      WindowError::SdlGpuError => write!(f, "Gpu Init Error"),
       WindowError::SdlWindowError => write!(f, "Window Init Error"),
     }
   }
@@ -42,7 +42,8 @@ pub struct MainWindow{
   sdl_context: sdl2::Sdl,
   video_subsystem: sdl2::VideoSubsystem,
   window: sdl2::video::Window,
-  gl_context: sdl2::video::GLContext
+  raw_window_handle: RawWindowHandle,
+  gpu_api: Box<dyn gpu::Gpu>
   //canvas: sdl2::render::WindowCanvas
 }
 
@@ -86,7 +87,7 @@ impl MainWindow {
       Err(res) => return Err(WindowError::SdlWindowError)
     };
 
-    let raw_windows_handle = window.raw_window_handle();
+    let raw_window_handle = window.raw_window_handle();
 
     
     #[cfg(target_os = "windows")]
@@ -103,15 +104,12 @@ impl MainWindow {
     //window.
 
     //Box<dyn gpu::Gpu>
-    let gp = init_gpu(a_gpu_type);
-
-    let gl_context = match init_gl_context(&video_subsystem, &window) {
+    let gpu_api = match init_gpu(a_gpu_type, &video_subsystem, &window){
       Ok(res) => res,
-      Err(res) => return Err(WindowError::SdlGlError)
+      Err(res) => return Err(res)
     };
 
-    let gl = gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
-
+    
 
     let result = MainWindow {
       active: false,
@@ -120,7 +118,8 @@ impl MainWindow {
       sdl_context: sdl_context,
       video_subsystem: video_subsystem,
       window: window,
-      gl_context: gl_context
+      raw_window_handle: raw_window_handle,
+      gpu_api: gpu_api,
       //canvas: canvas
     };
 
@@ -164,11 +163,23 @@ impl MainWindow {
   }
 }
 
-fn init_gpu(a_gpu_type: gpu::GpuType) -> Box<dyn gpu::Gpu> {
+fn init_gpu(a_gpu_type: gpu::GpuType, a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> 
+  Result<Box<dyn gpu::Gpu>, WindowError > {
   match a_gpu_type {
-    gpu::GpuType::OpenGL => Box::new(gpu::GpuOpenGL::new()),
-    gpu::GpuType::Vulkan => Box::new(gpu::GpuVulkan::new()),
-    _ => panic!("Unknown gpu type")
+    gpu::GpuType::OpenGL => {
+      Ok(Box::new(match gpu::GpuOpenGL::new(a_video_subsystem, a_window){
+        Ok(res) => res,
+        Err(res) => return Err(WindowError::SdlGpuError)
+      }
+      ))
+    },
+    gpu::GpuType::Vulkan => {
+      Ok(Box::new( match gpu::GpuVulkan::new(){
+        Ok(res) => res,
+        Err(res) => return Err(WindowError::SdlGpuError)
+      }))
+    },
+    _ => Err(WindowError::SdlGpuError)
   }
 }
 
@@ -198,47 +209,3 @@ fn init_window_vulkan(a_video_subsystem: &sdl2::VideoSubsystem, a_name: &str, a_
       .build()
 }
 
-fn init_gl_context(a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> Result<sdl2::video::GLContext, WindowError> {
-  //let mut attempt = true;
-  let mut gl_version_major = 4;
-  let mut gl_version_minor = 7;
-
-  let gl_attr = a_video_subsystem.gl_attr();
-
-  loop {
-    if gl_version_major > 2 {
-      gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
-    }
-    
-    gl_attr.set_context_version(gl_version_major, gl_version_minor);
-
-    let gl_context_result = a_window.gl_create_context();
-
-    match gl_context_result {
-      Ok(res) => {
-        return Ok(res);
-      },
-      Err(res) => {
-        //try lower version of gl
-        if gl_version_minor > 0 {
-          gl_version_minor -= 1;
-        }
-        else if gl_version_major == 4 && gl_version_minor == 0 {
-          gl_version_major = 3;
-          gl_version_minor = 3;
-        }
-        else if gl_version_major == 3 && gl_version_minor == 0 {
-          gl_version_major = 2;
-          gl_version_minor = 1;
-        }
-        else if gl_version_major == 2 && gl_version_minor == 0 {
-          gl_version_major = 1;
-          gl_version_minor = 5;
-        }
-        else if gl_version_major == 1 && gl_version_minor == 0 {
-          return Err(WindowError::SdlGlError)
-        }
-      }
-    }
-  }
-}
