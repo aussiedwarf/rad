@@ -5,14 +5,14 @@ https://bitshifter.github.io/2020/05/07/conditional-compilation-in-rust/
 
 extern crate nfd2;
 
-mod gpu;
+mod renderer;
 mod main_window;
 
 use nfd2::Response;
 
 fn main() {
 
-  let mut foo = match main_window::MainWindow::init(gpu::GpuType::OpenGL){
+  let mut foo = match main_window::MainWindow::init(renderer::RendererType::OpenGL){
     Ok(res) => res,
     Err(res) => {
       eprintln!("Error");

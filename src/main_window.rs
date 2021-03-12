@@ -2,10 +2,10 @@ extern crate sdl2;
 //extern crate raw_window_handle;
 extern crate libc;
 
-//mod gpu;
+//mod renderer;
 
-use crate::gpu;
-use crate::gpu::Gpu;
+use crate::renderer;
+use crate::renderer::Renderer;
 
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 
@@ -18,7 +18,7 @@ use std::fmt;
 pub enum WindowError {
   SdlInitError,
   SdlWindowError,
-  SdlGpuError,
+  SdlRendererError,
   Error
 }
 
@@ -29,7 +29,7 @@ impl fmt::Display for WindowError {
     match self {
       WindowError::Error => write!(f, "Error"),
       WindowError::SdlInitError => write!(f, "Sdl Init Error"),
-      WindowError::SdlGpuError => write!(f, "Gpu Init Error"),
+      WindowError::SdlRendererError => write!(f, "Renderer Init Error"),
       WindowError::SdlWindowError => write!(f, "Window Init Error"),
     }
   }
@@ -43,14 +43,14 @@ pub struct MainWindow{
   video_subsystem: sdl2::VideoSubsystem,
   window: sdl2::video::Window,
   raw_window_handle: RawWindowHandle,
-  gpu_api: Box<dyn gpu::Gpu>
+  renderer: Box<dyn renderer::Renderer>
   //canvas: sdl2::render::WindowCanvas
 }
 
 
 
 impl MainWindow {
-  pub fn init(a_gpu_type: gpu::GpuType) -> Result<MainWindow, WindowError>  {
+  pub fn init(a_renderer_type: renderer::RendererType) -> Result<MainWindow, WindowError>  {
     let width: i32 = 800;
     let height: i32 = 600;
     let sdl_context = match sdl2::init(){
@@ -76,7 +76,7 @@ impl MainWindow {
       */
     let window_name = "rust-sdl2 demo";
 
-    let window = match a_gpu_type {
+    let window = match a_renderer_type {
       OpenGL => init_window_opengl(&video_subsystem, window_name, width as u32, height as u32),
       Vulkan => init_window_vulkan(&video_subsystem, window_name, width as u32, height as u32),
       _ => init_window(&video_subsystem, window_name, width as u32, height as u32)
@@ -103,8 +103,8 @@ impl MainWindow {
     
     //window.
 
-    //Box<dyn gpu::Gpu>
-    let gpu_api = match init_gpu(a_gpu_type, &video_subsystem, &window){
+    //Box<dyn renderer::Renderer>
+    let renderer = match init_renderer(a_renderer_type, &video_subsystem, &window){
       Ok(res) => res,
       Err(res) => return Err(res)
     };
@@ -119,7 +119,7 @@ impl MainWindow {
       video_subsystem: video_subsystem,
       window: window,
       raw_window_handle: raw_window_handle,
-      gpu_api: gpu_api,
+      renderer: renderer,
       //canvas: canvas
     };
 
@@ -163,23 +163,23 @@ impl MainWindow {
   }
 }
 
-fn init_gpu(a_gpu_type: gpu::GpuType, a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> 
-  Result<Box<dyn gpu::Gpu>, WindowError > {
-  match a_gpu_type {
-    gpu::GpuType::OpenGL => {
-      Ok(Box::new(match gpu::GpuOpenGL::new(a_video_subsystem, a_window){
+fn init_renderer(a_renderer_type: renderer::RendererType, a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> 
+  Result<Box<dyn renderer::Renderer>, WindowError > {
+  match a_renderer_type {
+    renderer::RendererType::OpenGL => {
+      Ok(Box::new(match renderer::RendererOpenGL::new(a_video_subsystem, a_window){
         Ok(res) => res,
-        Err(res) => return Err(WindowError::SdlGpuError)
+        Err(res) => return Err(WindowError::SdlRendererError)
       }
       ))
     },
-    gpu::GpuType::Vulkan => {
-      Ok(Box::new( match gpu::GpuVulkan::new(){
+    renderer::RendererType::Vulkan => {
+      Ok(Box::new( match renderer::RendererVulkan::new(){
         Ok(res) => res,
-        Err(res) => return Err(WindowError::SdlGpuError)
+        Err(res) => return Err(WindowError::SdlRendererError)
       }))
     },
-    _ => Err(WindowError::SdlGpuError)
+    _ => Err(WindowError::SdlRendererError)
   }
 }
 
