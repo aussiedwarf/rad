@@ -18,6 +18,13 @@ pub enum RendererError {
   Error
 }
 
+#[derive(Copy, Clone)]
+pub enum RendererClearType{
+  RendererClearColor = 0x1,
+  RendererClearDepth = 0x2,
+  RendererClearStencil = 0x4
+}
+
 impl std::error::Error for RendererError {}
 
 impl fmt::Display for RendererError {
@@ -29,24 +36,66 @@ impl fmt::Display for RendererError {
 }
 
 
+
+
 pub trait Renderer {
   fn name(&self) -> String;
-  //fn new() -> Self;
+
+  //Frame to begin rendering. Render calls may now be made. Set weather to clear screen at render start
+  //Reason on clearing here is vulkan rendering system has faster clear on start render
+  //RendererClearColor | RendererClearDepth | RendererClearStencil
+  fn begin_frame(&mut self, a_clear: RendererClearType);
+  fn end_frame(&mut self);
+
+  //clear immediatly
+  //= RendererClearColor | RendererClearDepth | RendererClearStencil
+  fn clear(&mut self, a_clear: RendererClearType);
+
+  //Get and set clear values may be called before BeginFrame
+  fn set_clear_color(&mut self, a_r: f32, a_g:  f32, a_b: f32, a_a: f32);
+  fn set_clear_depth(&mut self, a_depth: f32);
+  fn set_clear_stencil(&mut self, a_stencil: u8);
+  fn get_clear_color(&self) -> (f32, f32, f32, f32);
+  fn get_clear_depth(&self) -> f32;
+  fn get_clear_stencil(&self) -> u8;
+  
 }
 
 pub struct RendererOpenGL {
   pub gl_context: sdl2::video::GLContext,
-  pub versionMajor: i32
+  pub version_major: i32
 }
 
 pub struct RendererVulkan {
-  pub versionMajor: i32
+  pub version_major: i32
 }
 
 
 impl Renderer for RendererOpenGL {
   fn name(&self) -> String{
     String::from("OpenGL")
+  }
+
+  fn begin_frame(&mut self, a_clear: RendererClearType){}
+  fn end_frame(&mut self){}
+
+  //clear immediatly
+  //= RendererClearColor | RendererClearDepth | RendererClearStencil
+  fn clear(&mut self, a_clear: RendererClearType){}
+
+  //Get and set clear values may be called before BeginFrame
+  fn set_clear_color(&mut self, a_r: f32, a_g:  f32, a_b: f32, a_a: f32){}
+  fn set_clear_depth(&mut self, a_depth: f32){}
+  fn set_clear_stencil(&mut self, a_stencil: u8){}
+  fn get_clear_color(&self) -> (f32, f32, f32, f32){
+    (0.0,0.0,0.0,0.0)
+  }
+  fn get_clear_depth(&self) -> f32{
+    0.0
+  }
+
+  fn get_clear_stencil(&self) -> u8{
+    0
   }
 
 }
@@ -62,14 +111,9 @@ impl RendererOpenGL {
 
     Ok(Self {
       gl_context: gl_context,
-      versionMajor: 0
+      version_major: 0
     })
   }
-
-  fn my_method(&self) -> i32{
-    85
-  }
-
   
 }
 
@@ -77,12 +121,34 @@ impl Renderer for RendererVulkan {
   fn name(&self) -> String{
     String::from("Vulkan")
   }
+
+  fn begin_frame(&mut self, a_clear: RendererClearType){}
+  fn end_frame(&mut self){}
+
+  //clear immediatly
+  //= RendererClearColor | RendererClearDepth | RendererClearStencil
+  fn clear(&mut self, a_clear: RendererClearType){}
+
+  //Get and set clear values may be called before BeginFrame
+  fn set_clear_color(&mut self, a_r: f32, a_g:  f32, a_b: f32, a_a: f32){}
+  fn set_clear_depth(&mut self, a_depth: f32){}
+  fn set_clear_stencil(&mut self, a_stencil: u8){}
+  fn get_clear_color(&self) -> (f32, f32, f32, f32){
+    (0.0,0.0,0.0,0.0)
+  }
+  fn get_clear_depth(&self) -> f32{
+    0.0
+  }
+
+  fn get_clear_stencil(&self) -> u8{
+    0
+  }
 }
 
 impl RendererVulkan{
   pub fn new() -> Result<Self, RendererError>{
     Ok(Self {
-      versionMajor: 0
+      version_major: 0
     })
   }
 }
