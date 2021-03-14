@@ -64,14 +64,20 @@ pub trait Renderer {
   fn clear(&mut self, a_clear: RendererClearType);
 
   //Get and set clear values may be called before BeginFrame
+
+  //color bgra
   fn set_clear_color(&mut self, a_color: Vec4);
   fn set_clear_depth(&mut self, a_depth: f32);
   fn set_clear_stencil(&mut self, a_stencil: i32);
+
+  //color bgra
   fn get_clear_color(&self) -> Vec4;
   fn get_clear_depth(&self) -> f32;
   fn get_clear_stencil(&self) -> i32;
 
   fn set_viewport(&mut self, a_pos: IVec2, a_size: IVec2);
+  fn get_viewport_pos(&self) -> IVec2;
+  fn get_viewport_size(&self) -> IVec2;
   
 }
 
@@ -167,6 +173,13 @@ impl Renderer for RendererOpenGL {
     }
   }
 
+  fn get_viewport_pos(&self) -> IVec2{
+    self.viewport_pos
+  }
+  fn get_viewport_size(&self) -> IVec2{
+    self.viewport_size
+  }
+
 }
 
 impl RendererOpenGL {
@@ -219,6 +232,13 @@ impl Renderer for RendererVulkan {
   }
 
   fn set_viewport(&mut self, a_pos: IVec2, a_size: IVec2){}
+
+  fn get_viewport_pos(&self) -> IVec2{
+    IVec2::new(0,0)
+  }
+  fn get_viewport_size(&self) -> IVec2{
+    IVec2::new(0,0)
+  }
 }
 
 impl RendererVulkan{

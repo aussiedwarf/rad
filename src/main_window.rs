@@ -5,7 +5,6 @@ extern crate libc;
 //mod renderer;
 
 use crate::renderer;
-use crate::renderer::Renderer;
 
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 
