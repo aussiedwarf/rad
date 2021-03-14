@@ -3,6 +3,8 @@ Conditional compiliation
 https://bitshifter.github.io/2020/05/07/conditional-compilation-in-rust/
 */
 
+#[macro_use]
+extern crate bitflags;
 extern crate nfd2;
 
 mod renderer;

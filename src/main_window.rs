@@ -13,6 +13,7 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
 use std::fmt;
+use glam::{Vec4, IVec2};
 
 #[derive(Debug, Clone)]
 pub enum WindowError {
@@ -128,13 +129,8 @@ impl MainWindow {
 
   pub fn run(&mut self) {
     
-    //self.canvas.set_draw_color(Color::RGB(0, 255, 255));
-    //self.canvas.clear();
-    //self.canvas.present();
-    unsafe {
-      gl::ClearColor(0.3, 0.3, 0.5, 1.0);
-      gl::Viewport(0, 0, self.width, self.height);
-    }
+    self.renderer.set_clear_color(Vec4::new(0.5, 0.3, 0.3, 2.0));
+    self.renderer.set_viewport(IVec2::new(0,0), IVec2::new(self.width, self.height));
 
     let mut event_pump = self.sdl_context.event_pump().unwrap();
     let mut i = 0;
@@ -152,9 +148,7 @@ impl MainWindow {
           }
       }
       // The rest of the game loop goes here...
-      unsafe {
-        gl::Clear(gl::COLOR_BUFFER_BIT);
-      }
+      self.renderer.clear(renderer::RendererClearType::Color);
       
       self.window.gl_swap_window();
       //self.canvas.present();

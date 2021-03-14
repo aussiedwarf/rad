@@ -1,7 +1,10 @@
 
+
 extern crate gl;
+extern crate glam;
 
 use std::fmt;
+use glam::{Vec4, IVec2};
 
 #[derive(Copy, Clone)]
 pub enum RendererType {
@@ -17,12 +20,21 @@ pub enum RendererType {
 pub enum RendererError {
   Error
 }
-
+/*
 #[derive(Copy, Clone)]
 pub enum RendererClearType{
   RendererClearColor = 0x1,
   RendererClearDepth = 0x2,
   RendererClearStencil = 0x4
+}
+*/
+bitflags! {
+  pub struct RendererClearType: u32 {
+      const Color = 0b00000001;
+      const Depth = 0b00000010;
+      const Stencil = 0b00000100;
+      //const ABC = Self::A.bits | Self::B.bits | Self::C.bits;
+  }
 }
 
 impl std::error::Error for RendererError {}
@@ -52,22 +64,35 @@ pub trait Renderer {
   fn clear(&mut self, a_clear: RendererClearType);
 
   //Get and set clear values may be called before BeginFrame
-  fn set_clear_color(&mut self, a_r: f32, a_g:  f32, a_b: f32, a_a: f32);
+  fn set_clear_color(&mut self, a_color: Vec4);
   fn set_clear_depth(&mut self, a_depth: f32);
-  fn set_clear_stencil(&mut self, a_stencil: u8);
-  fn get_clear_color(&self) -> (f32, f32, f32, f32);
+  fn set_clear_stencil(&mut self, a_stencil: i32);
+  fn get_clear_color(&self) -> Vec4;
   fn get_clear_depth(&self) -> f32;
-  fn get_clear_stencil(&self) -> u8;
+  fn get_clear_stencil(&self) -> i32;
+
+  fn set_viewport(&mut self, a_pos: IVec2, a_size: IVec2);
   
 }
 
 pub struct RendererOpenGL {
   pub gl_context: sdl2::video::GLContext,
-  pub version_major: i32
+  pub version_major: i32,
+
+  clear_color: Vec4,
+  clear_depth: f32,
+  clear_stencil: i32,
+
+  viewport_pos: IVec2,
+  viewport_size: IVec2,
 }
 
 pub struct RendererVulkan {
-  pub version_major: i32
+  pub version_major: i32,
+
+  clear_color: Vec4,
+  clear_depth: f32,
+  clear_stencil: i32
 }
 
 
@@ -80,22 +105,66 @@ impl Renderer for RendererOpenGL {
   fn end_frame(&mut self){}
 
   //clear immediatly
-  //= RendererClearColor | RendererClearDepth | RendererClearStencil
-  fn clear(&mut self, a_clear: RendererClearType){}
+  fn clear(&mut self, a_clear: RendererClearType){
+    let mut bits: gl::types::GLenum = 0;
+
+    if (a_clear & RendererClearType::Color) == RendererClearType::Color {
+      bits |= gl::COLOR_BUFFER_BIT;
+    }
+
+    if (a_clear & RendererClearType::Depth) == RendererClearType::Depth {
+      bits |= gl::DEPTH_BUFFER_BIT;
+    }
+
+    if (a_clear & RendererClearType::Stencil) == RendererClearType::Stencil {
+      bits |= gl::STENCIL_BUFFER_BIT;
+    }
+
+    unsafe {
+      gl::Clear(bits);
+    }
+  }
 
   //Get and set clear values may be called before BeginFrame
-  fn set_clear_color(&mut self, a_r: f32, a_g:  f32, a_b: f32, a_a: f32){}
-  fn set_clear_depth(&mut self, a_depth: f32){}
-  fn set_clear_stencil(&mut self, a_stencil: u8){}
-  fn get_clear_color(&self) -> (f32, f32, f32, f32){
-    (0.0,0.0,0.0,0.0)
-  }
-  fn get_clear_depth(&self) -> f32{
-    0.0
+  fn set_clear_color(&mut self, a_color: Vec4){
+    self.clear_color = a_color;
+    unsafe {
+      gl::ClearColor(a_color.z, a_color.y, a_color.x, a_color.w);
+    }
   }
 
-  fn get_clear_stencil(&self) -> u8{
-    0
+  fn set_clear_depth(&mut self, a_depth: f32){
+    self.clear_depth = a_depth;
+    unsafe {
+      gl::ClearDepthf(a_depth);
+    }
+  }
+
+  fn set_clear_stencil(&mut self, a_stencil: i32){
+    self.clear_stencil = a_stencil;
+    unsafe {
+      gl::ClearStencil(a_stencil);
+    }
+  }
+
+  fn get_clear_color(&self) -> Vec4{
+    self.clear_color
+  }
+
+  fn get_clear_depth(&self) -> f32{
+    self.clear_depth
+  }
+
+  fn get_clear_stencil(&self) -> i32{
+    self.clear_stencil
+  }
+
+  fn set_viewport(&mut self, a_pos: IVec2, a_size: IVec2){
+    self.viewport_pos = a_pos;
+    self.viewport_size = a_size;
+    unsafe {
+      gl::Viewport(a_pos.x, a_pos.y, a_size.x, a_size.y);
+    }
   }
 
 }
@@ -111,7 +180,12 @@ impl RendererOpenGL {
 
     Ok(Self {
       gl_context: gl_context,
-      version_major: 0
+      version_major: 0,
+      clear_color: Vec4::new(0.0, 0.0, 0.0, 0.0),
+      clear_depth: 1.0,
+      clear_stencil: 0,
+      viewport_pos: IVec2::new(0,0),
+      viewport_size: IVec2::new(0,0),
     })
   }
   
@@ -130,25 +204,30 @@ impl Renderer for RendererVulkan {
   fn clear(&mut self, a_clear: RendererClearType){}
 
   //Get and set clear values may be called before BeginFrame
-  fn set_clear_color(&mut self, a_r: f32, a_g:  f32, a_b: f32, a_a: f32){}
+  fn set_clear_color(&mut self, a_color: Vec4){}
   fn set_clear_depth(&mut self, a_depth: f32){}
-  fn set_clear_stencil(&mut self, a_stencil: u8){}
-  fn get_clear_color(&self) -> (f32, f32, f32, f32){
-    (0.0,0.0,0.0,0.0)
+  fn set_clear_stencil(&mut self, a_stencil: i32){}
+  fn get_clear_color(&self) -> Vec4{
+    self.clear_color
   }
   fn get_clear_depth(&self) -> f32{
-    0.0
+    self.clear_depth
   }
 
-  fn get_clear_stencil(&self) -> u8{
-    0
+  fn get_clear_stencil(&self) -> i32{
+    self.clear_stencil
   }
+
+  fn set_viewport(&mut self, a_pos: IVec2, a_size: IVec2){}
 }
 
 impl RendererVulkan{
   pub fn new() -> Result<Self, RendererError>{
     Ok(Self {
-      version_major: 0
+      version_major: 0,
+      clear_color: Vec4::new(0.0, 0.0, 0.0, 0.0),
+      clear_depth: 1.0,
+      clear_stencil: 0
     })
   }
 }
