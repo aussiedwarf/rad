@@ -4,6 +4,7 @@ extern crate gl;
 extern crate glam;
 
 use std::fmt;
+use std::ffi::{CString, CStr};
 use glam::{Vec4, IVec2};
 
 #[derive(Copy, Clone)]
@@ -15,10 +16,22 @@ pub enum RendererType {
   Metal
 }
 
+#[derive(Copy, Clone)]
+pub enum ShaderType{
+  Vertex,
+  TesselationControl,
+  TesselationEvaluation,
+  Geometry,
+  Fragment,
+  Compute
+}
+
 
 #[derive(Debug, Clone)]
 pub enum RendererError {
-  Error
+  Error,
+  ShaderCompile,
+  Unimplemented
 }
 /*
 #[derive(Copy, Clone)]
@@ -30,10 +43,11 @@ pub enum RendererClearType{
 */
 bitflags! {
   pub struct RendererClearType: u32 {
-      const Color = 0b00000001;
-      const Depth = 0b00000010;
-      const Stencil = 0b00000100;
-      //const ABC = Self::A.bits | Self::B.bits | Self::C.bits;
+    const None = 0b00000000;
+    const Color = 0b00000001;
+    const Depth = 0b00000010;
+    const Stencil = 0b00000100;
+    //const ABC = Self::A.bits | Self::B.bits | Self::C.bits;
   }
 }
 
@@ -43,17 +57,59 @@ impl fmt::Display for RendererError {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self {
       RendererError::Error => write!(f, "Error"),
+      RendererError::Unimplemented => write!(f, "Error Unimplemented"),
+      RendererError::ShaderCompile => write!(f, "Error ShaderCompile"),
     }
   }
 }
 
 
+pub trait Program{
+
+}
+
+pub struct ProgramOpenGL {
+
+}
+
+impl Program for ProgramOpenGL {
+
+}
+
+pub trait Shader{
+
+}
+
+pub struct ShaderOpenGL {
+  id: gl::types::GLuint,
+  source: String
+}
+
+impl Shader for ShaderOpenGL {
+
+}
+
+
+pub trait Texture{
+
+}
+
+
+pub trait Vertices{
+
+}
+
+
+pub struct Image{
+
+}
 
 
 pub trait Renderer {
   fn name(&self) -> String;
+  fn get_type(&self) -> RendererType;
 
-  //Frame to begin rendering. Render calls may now be made. Set weather to clear screen at render start
+  //Frame to begin rendering. Render calls may now be made. Set whether to clear screen at render start
   //Reason on clearing here is vulkan rendering system has faster clear on start render
   //RendererClearColor | RendererClearDepth | RendererClearStencil
   fn begin_frame(&mut self, a_clear: RendererClearType);
@@ -79,6 +135,16 @@ pub trait Renderer {
   fn get_viewport_pos(&self) -> IVec2;
   fn get_viewport_size(&self) -> IVec2;
   
+  fn load_shader(&mut self, a_shader_type: ShaderType, a_source: &str) -> Result<Box<dyn Shader>, RendererError>;
+
+  /*
+  fn load_program_vert_frag(&mut self, a_shader_vert: Box<dyn Shader>, a_shader_frag: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>;
+  fn load_program_compute(&mut self, a_shader: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>;
+
+  fn load_texture(&mut self, a_image: Image) -> Box<dyn Texture>;
+
+  fn load_vertex(&mut self, a_vertices: f32) -> Box<dyn Vertices>;
+  */
 }
 
 pub struct RendererOpenGL {
@@ -105,6 +171,10 @@ pub struct RendererVulkan {
 impl Renderer for RendererOpenGL {
   fn name(&self) -> String{
     String::from("OpenGL")
+  }
+
+  fn get_type(&self) -> RendererType{
+    RendererType::OpenGL
   }
 
   fn begin_frame(&mut self, a_clear: RendererClearType){}
@@ -180,6 +250,63 @@ impl Renderer for RendererOpenGL {
     self.viewport_size
   }
 
+  fn load_shader(&mut self, a_shader_type: ShaderType, a_source: &str) -> Result<Box<dyn Shader>, RendererError>{
+    let id = match a_shader_type {
+      Vertex => unsafe { gl::CreateShader(gl::VERTEX_SHADER) },
+      TesselationControl => unsafe { gl::CreateShader(gl::TESS_CONTROL_SHADER) },
+      TesselationEvaluation => unsafe { gl::CreateShader(gl::TESS_EVALUATION_SHADER) },
+      Geometry => unsafe { gl::CreateShader(gl::GEOMETRY_SHADER) },
+      Fragment => unsafe { gl::CreateShader(gl::FRAGMENT_SHADER) },
+      Compute => unsafe { gl::CreateShader(gl::COMPUTE_SHADER) }
+    };
+
+    let c_str = match CString::new(a_source){
+      Ok(res) => res,
+      Err(res) => return Err(RendererError::ShaderCompile)
+    };
+    //let c_world: *const c_char = c_str.as_ptr() as *const c_char;
+
+    unsafe {
+      gl::ShaderSource(id, 1, &c_str.as_ptr(), std::ptr::null());
+      gl::CompileShader(id);
+    }
+
+    let mut success: gl::types::GLint = 1;
+    unsafe {
+      gl::GetShaderiv(id, gl::COMPILE_STATUS, &mut success);
+    }
+
+    if success == 0 {
+
+      let mut len: gl::types::GLint = 0;
+      unsafe {
+          gl::GetShaderiv(id, gl::INFO_LOG_LENGTH, &mut len);
+      }
+
+      // allocate buffer of correct size
+      let mut buffer: Vec<u8> = Vec::with_capacity(len as usize + 1);
+      // fill it with len spaces
+      buffer.extend([b' '].iter().cycle().take(len as usize));
+      // convert buffer to CString
+      let error: CString = unsafe { CString::from_vec_unchecked(buffer) };
+
+      unsafe {
+        gl::GetShaderInfoLog(
+            id,
+            len,
+            std::ptr::null_mut(),
+            error.as_ptr() as *mut gl::types::GLchar
+        );
+      }
+
+      //return Err(error.to_string_lossy().into_owned());
+
+      return Err(RendererError::Error)
+    }
+
+    Err(RendererError::Error)
+  }
+
 }
 
 impl RendererOpenGL {
@@ -201,12 +328,23 @@ impl RendererOpenGL {
       viewport_size: IVec2::new(0,0),
     })
   }
-  
+}
+
+impl Drop for ShaderOpenGL {
+  fn drop(&mut self) {
+      unsafe {
+          gl::DeleteShader(self.id);
+      }
+  }
 }
 
 impl Renderer for RendererVulkan {
   fn name(&self) -> String{
     String::from("Vulkan")
+  }
+
+  fn get_type(&self) -> RendererType{
+    RendererType::Vulkan
   }
 
   fn begin_frame(&mut self, a_clear: RendererClearType){}
@@ -238,6 +376,10 @@ impl Renderer for RendererVulkan {
   }
   fn get_viewport_size(&self) -> IVec2{
     IVec2::new(0,0)
+  }
+
+  fn load_shader(&mut self, a_shader_type: ShaderType, a_source: &str) -> Result<Box<dyn Shader>, RendererError>{
+    Err(RendererError::Unimplemented)
   }
 }
 
