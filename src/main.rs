@@ -8,6 +8,8 @@ extern crate bitflags;
 extern crate nfd2;
 
 mod renderer;
+mod renderer_opengl;
+mod renderer_vulkan;
 mod main_window;
 
 use nfd2::Response;

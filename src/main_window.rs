@@ -5,6 +5,8 @@ extern crate libc;
 //mod renderer;
 
 use crate::renderer;
+use crate::renderer_opengl;
+use crate::renderer_vulkan;
 
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 
@@ -160,14 +162,14 @@ fn init_renderer(a_renderer_type: renderer::RendererType, a_video_subsystem: &sd
   Result<Box<dyn renderer::Renderer>, WindowError > {
   match a_renderer_type {
     renderer::RendererType::OpenGL => {
-      Ok(Box::new(match renderer::RendererOpenGL::new(a_video_subsystem, a_window){
+      Ok(Box::new(match renderer_opengl::RendererOpenGL::new(a_video_subsystem, a_window){
         Ok(res) => res,
         Err(res) => return Err(WindowError::SdlRendererError)
       }
       ))
     },
     renderer::RendererType::Vulkan => {
-      Ok(Box::new( match renderer::RendererVulkan::new(){
+      Ok(Box::new( match renderer_vulkan::RendererVulkan::new(){
         Ok(res) => res,
         Err(res) => return Err(WindowError::SdlRendererError)
       }))
