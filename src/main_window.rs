@@ -14,6 +14,8 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
 use std::fmt;
+use std::fs::File;
+use std::io::prelude::*;
 use glam::{Vec4, IVec2};
 
 #[derive(Debug, Clone)]
@@ -106,12 +108,10 @@ impl MainWindow {
     //window.
 
     //Box<dyn renderer::Renderer>
-    let renderer = match init_renderer(a_renderer_type, &video_subsystem, &window){
+    let mut renderer = match init_renderer(a_renderer_type, &video_subsystem, &window){
       Ok(res) => res,
       Err(res) => return Err(res)
     };
-
-    
 
     let result = MainWindow {
       active: false,
@@ -128,7 +128,42 @@ impl MainWindow {
     Ok(result)
   } 
 
+
   pub fn run(&mut self) {
+    let mut file_vertex = match File::open("basic.vert"){
+      Ok(res) => res,
+      Err(res) => return
+    };
+    let mut source_vertex = String::new();
+    match file_vertex.read_to_string(&mut source_vertex){
+      Ok(res) => res,
+      Err(res) => return
+    };
+
+    let shader_vertex = match self.renderer.load_shader(renderer::ShaderType::Vertex, source_vertex.as_ref()){
+      Ok(res) => res,
+      Err(res) => return
+    };
+
+    let mut file_frag = match File::open("basic.frag"){
+      Ok(res) => res,
+      Err(res) => return
+    };
+    let mut source_frag = String::new();
+    match file_frag.read_to_string(&mut source_frag){
+      Ok(res) => res,
+      Err(res) => return
+    };
+
+    let shader_frag = match self.renderer.load_shader(renderer::ShaderType::Fragment, &mut source_frag){
+      Ok(res) => res,
+      Err(res) => return
+    };
+
+    let shader_program = match self.renderer.load_program_vert_frag(shader_vertex, shader_frag){
+      Ok(res) => res,
+      Err(res) => return
+    };
     
     self.renderer.set_clear_color(Vec4::new(0.5, 0.3, 0.3, 2.0));
     self.renderer.set_viewport(IVec2::new(0,0), IVec2::new(self.width, self.height));

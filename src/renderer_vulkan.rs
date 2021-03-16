@@ -55,6 +55,10 @@ impl Renderer for RendererVulkan {
   fn load_shader(&mut self, a_shader_type: ShaderType, a_source: &str) -> Result<Box<dyn Shader>, RendererError>{
     Err(RendererError::Unimplemented)
   }
+
+  fn load_program_vert_frag(&mut self, a_shader_vert: Box<dyn Shader>, a_shader_frag: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>{
+    Err(RendererError::Unimplemented)
+  }
 }
 
 impl RendererVulkan{

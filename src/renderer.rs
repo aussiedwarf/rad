@@ -28,6 +28,7 @@ pub enum ShaderType{
 pub enum RendererError {
   Error,
   ShaderCompile,
+  InvalidCast,
   Unimplemented
 }
 /*
@@ -55,6 +56,7 @@ impl fmt::Display for RendererError {
     match self {
       RendererError::Error => write!(f, "Error"),
       RendererError::Unimplemented => write!(f, "Error Unimplemented"),
+      RendererError::InvalidCast => write!(f, "Error InvalidCast"),
       RendererError::ShaderCompile => write!(f, "Error ShaderCompile"),
     }
   }
@@ -67,7 +69,7 @@ pub trait Program{
 
 
 pub trait Shader{
-
+  fn any(&self) -> &dyn std::any::Any;
 }
 
 
@@ -117,9 +119,9 @@ pub trait Renderer {
   fn get_viewport_size(&self) -> IVec2;
   
   fn load_shader(&mut self, a_shader_type: ShaderType, a_source: &str) -> Result<Box<dyn Shader>, RendererError>;
+  fn load_program_vert_frag(&mut self, a_shader_vert: Box<dyn Shader>, a_shader_frag: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>;
 
   /*
-  fn load_program_vert_frag(&mut self, a_shader_vert: Box<dyn Shader>, a_shader_frag: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>;
   fn load_program_compute(&mut self, a_shader: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>;
 
   fn load_texture(&mut self, a_image: Image) -> Box<dyn Texture>;

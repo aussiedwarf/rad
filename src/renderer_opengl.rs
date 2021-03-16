@@ -8,7 +8,7 @@ use glam::{Vec4, IVec2};
 use crate::renderer::*;
 
 pub struct ProgramOpenGL {
-
+  id: gl::types::GLuint
 }
 
 impl Program for ProgramOpenGL {
@@ -17,11 +17,13 @@ impl Program for ProgramOpenGL {
 
 pub struct ShaderOpenGL {
   id: gl::types::GLuint,
-  source: String
+  //source: String
 }
 
 impl Shader for ShaderOpenGL {
-
+  fn any(&self) -> &dyn std::any::Any{
+    self
+  }
 }
 
 pub struct RendererOpenGL {
@@ -120,6 +122,7 @@ impl Renderer for RendererOpenGL {
   }
 
   fn load_shader(&mut self, a_shader_type: ShaderType, a_source: &str) -> Result<Box<dyn Shader>, RendererError>{
+    /*
     let id = match a_shader_type {
       Vertex => unsafe { gl::CreateShader(gl::VERTEX_SHADER) },
       TesselationControl => unsafe { gl::CreateShader(gl::TESS_CONTROL_SHADER) },
@@ -128,6 +131,17 @@ impl Renderer for RendererOpenGL {
       Fragment => unsafe { gl::CreateShader(gl::FRAGMENT_SHADER) },
       Compute => unsafe { gl::CreateShader(gl::COMPUTE_SHADER) }
     };
+    */
+    let shader_type = match a_shader_type {
+      ShaderType::Vertex => gl::VERTEX_SHADER,
+      ShaderType::TesselationControl => gl::TESS_CONTROL_SHADER,
+      ShaderType::TesselationEvaluation => gl::TESS_EVALUATION_SHADER,
+      ShaderType::Geometry => gl::GEOMETRY_SHADER,
+      ShaderType::Fragment => gl::FRAGMENT_SHADER,
+      ShaderType::Compute => gl::COMPUTE_SHADER
+    };
+
+    let id = unsafe {gl::CreateShader(shader_type)};
 
     let c_str = match CString::new(a_source){
       Ok(res) => res,
@@ -168,12 +182,70 @@ impl Renderer for RendererOpenGL {
         );
       }
 
+      eprintln!("Error {}", error.to_string_lossy().into_owned());
       //return Err(error.to_string_lossy().into_owned());
 
       return Err(RendererError::Error)
     }
 
-    Err(RendererError::Error)
+    Ok(Box::new(ShaderOpenGL{id:id}))
+  }
+
+  fn load_program_vert_frag(&mut self, a_shader_vert: Box<dyn Shader>, a_shader_frag: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>{
+    let program_id = unsafe { gl::CreateProgram() };
+
+    let shader_vert = match a_shader_vert.any().downcast_ref::<ShaderOpenGL>() {
+      Some(res) => res,
+      None => return Err(RendererError::InvalidCast)
+    };
+
+    let shader_frag = match a_shader_frag.any().downcast_ref::<ShaderOpenGL>() {
+      Some(res) => res,
+      None => return Err(RendererError::InvalidCast)
+    };
+
+    unsafe {
+      gl::AttachShader(program_id, shader_vert.id);
+      gl::AttachShader(program_id, shader_frag.id);
+      gl::LinkProgram(program_id);
+      gl::DetachShader(program_id, shader_vert.id);
+      gl::DetachShader(program_id, shader_frag.id);
+    }
+
+    let mut success: gl::types::GLint = 1;
+    unsafe {
+        gl::GetProgramiv(program_id, gl::LINK_STATUS, &mut success);
+    }
+
+    if success == 0 {
+      let mut len: gl::types::GLint = 0;
+      unsafe {
+        gl::GetProgramiv(program_id, gl::INFO_LOG_LENGTH, &mut len);
+      }
+
+      // allocate buffer of correct size
+      let mut buffer: Vec<u8> = Vec::with_capacity(len as usize + 1);
+      // fill it with len spaces
+      buffer.extend([b' '].iter().cycle().take(len as usize));
+      // convert buffer to CString
+      let error: CString = unsafe { CString::from_vec_unchecked(buffer) };
+
+      unsafe {
+        gl::GetProgramInfoLog(
+          program_id,
+          len,
+          std::ptr::null_mut(),
+          error.as_ptr() as *mut gl::types::GLchar
+        );
+      }
+
+      eprintln!("Error {}", error.to_string_lossy().into_owned());
+
+      //return Err(error.to_string_lossy().into_owned());
+      return Err(RendererError::Error)
+    }
+
+    Ok(Box::new(ProgramOpenGL{id: program_id}))
   }
 
 }
@@ -203,6 +275,15 @@ impl Drop for ShaderOpenGL {
   fn drop(&mut self) {
       unsafe {
           gl::DeleteShader(self.id);
+      }
+  }
+}
+
+
+impl Drop for ProgramOpenGL {
+  fn drop(&mut self) {
+      unsafe {
+          gl::DeleteProgram(self.id);
       }
   }
 }
