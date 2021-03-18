@@ -29,7 +29,8 @@ impl Shader for ShaderOpenGL {
 }
 
 pub struct VerticesOpenGL {
-  id: gl::types::GLuint
+  id: gl::types::GLuint,
+  num: gl::types::GLsizei
 }
 
 impl Vertices for VerticesOpenGL {
@@ -39,7 +40,8 @@ impl Vertices for VerticesOpenGL {
 }
 
 pub struct GeometryOpenGL {
-  id: gl::types::GLuint
+  id: gl::types::GLuint,
+  num: gl::types::GLsizei
 }
 
 impl Geometry for GeometryOpenGL {
@@ -285,9 +287,9 @@ impl Renderer for RendererOpenGL {
           gl::STATIC_DRAW, // usage
       );
       gl::BindBuffer(gl::ARRAY_BUFFER, 0); // unbind the buffer
-  }
+    }
 
-    Box::new(VerticesOpenGL{id: vbo})
+    Box::new(VerticesOpenGL{id: vbo, num: (a_verts.len()/4) as gl::types::GLsizei})
   }
 
   fn gen_geometry(&mut self, a_buffer: Box<dyn Vertices>) -> Box<dyn Geometry>{
@@ -305,17 +307,28 @@ impl Renderer for RendererOpenGL {
       gl::EnableVertexAttribArray(0); // this is "layout (location = 0)" in vertex shader
       gl::VertexAttribPointer(
         0, // index of the generic vertex attribute ("layout (location = 0)")
-        3, // the number of components per generic vertex attribute
+        2, // the number of components per generic vertex attribute
         gl::FLOAT, // data type
         gl::FALSE, // normalized (int-to-float conversion)
-        (3 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
+        (4 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
         std::ptr::null() // offset of the first component
       );
+      /*
+      gl::EnableVertexAttribArray(1); // this is "layout (location = 0)" in vertex shader
+      gl::VertexAttribPointer(
+        1, // index of the generic vertex attribute ("layout (location = 0)")
+        2, // the number of components per generic vertex attribute
+        gl::FLOAT, // data type
+        gl::FALSE, // normalized (int-to-float conversion)
+        (2 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
+        std::ptr::null() // offset of the first component
+      );
+      */
 
       gl::BindBuffer(gl::ARRAY_BUFFER, 0);
       gl::BindVertexArray(0);
     }
-    Box::new(GeometryOpenGL{id:vao})
+    Box::new(GeometryOpenGL{id:vao, num: buffer.num})
   }
 
   fn use_program(&mut self, a_program: Box<dyn Program>){
@@ -339,7 +352,7 @@ impl Renderer for RendererOpenGL {
       gl::DrawArrays(
         gl::TRIANGLES, // mode
         0, // starting index in the enabled arrays
-        3 // number of indices to be rendered
+        geometry.num // number of indices to be rendered
       );
   }
   }
