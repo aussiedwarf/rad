@@ -164,6 +164,17 @@ impl MainWindow {
       Ok(res) => res,
       Err(res) => return
     };
+
+    let verts: std::vec::Vec<f32> = vec![
+      -0.5, -0.5, 0.0,
+      0.5, -0.5, 0.0,
+      0.0, 0.5, 0.0];
+
+    let vert_buffer = self.renderer.gen_buffer_vertex(verts);
+
+    let geometry = self.renderer.gen_geometry(vert_buffer);
+
+    self.renderer.use_program(shader_program);
     
     self.renderer.set_clear_color(Vec4::new(0.5, 0.3, 0.3, 2.0));
     self.renderer.set_viewport(IVec2::new(0,0), IVec2::new(self.width, self.height));
@@ -185,6 +196,8 @@ impl MainWindow {
       }
       // The rest of the game loop goes here...
       self.renderer.clear(renderer::RendererClearType::Color);
+
+      self.renderer.draw_geometry(&geometry);
       
       self.window.gl_swap_window();
       //self.canvas.present();

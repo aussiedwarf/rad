@@ -64,7 +64,7 @@ impl fmt::Display for RendererError {
 
 
 pub trait Program{
-
+  fn any(&self) -> &dyn std::any::Any;
 }
 
 
@@ -74,12 +74,16 @@ pub trait Shader{
 
 
 pub trait Texture{
-
 }
 
 
 pub trait Vertices{
+  fn any(&self) -> &dyn std::any::Any;
+}
 
+
+pub trait Geometry{
+  fn any(&self) -> &dyn std::any::Any;
 }
 
 
@@ -124,8 +128,19 @@ pub trait Renderer {
   /*
   fn load_program_compute(&mut self, a_shader: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>;
 
+  
+
+  fn gen_buffer_texture() -> Box<dyn Texture>;
   fn load_texture(&mut self, a_image: Image) -> Box<dyn Texture>;
 
-  fn load_vertex(&mut self, a_vertices: f32) -> Box<dyn Vertices>;
+  fn load_vertex(&mut self, a_vertices: f32);
   */
+
+  fn gen_buffer_vertex(&mut self, a_verts: std::vec::Vec<f32>) -> Box<dyn Vertices>;
+
+  fn gen_geometry(&mut self, a_buffer: Box<dyn Vertices>) -> Box<dyn Geometry>;
+
+  fn use_program(&mut self, a_program: Box<dyn Program>);
+
+  fn draw_geometry(&mut self, a_geometry: &Box<dyn Geometry>);
 }

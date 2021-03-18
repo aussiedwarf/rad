@@ -3,6 +3,26 @@ use glam::{Vec4, IVec2};
 
 use crate::renderer::*;
 
+pub struct VerticesVulkan {
+  id: i32
+}
+
+impl Vertices for VerticesVulkan {
+  fn any(&self) -> &dyn std::any::Any{
+    self
+  }
+}
+
+pub struct GeometryVulkan {
+  id: i32
+}
+
+impl Geometry for GeometryVulkan {
+  fn any(&self) -> &dyn std::any::Any{
+    self
+  }
+}
+
 pub struct RendererVulkan {
   pub version_major: i32,
 
@@ -59,6 +79,19 @@ impl Renderer for RendererVulkan {
   fn load_program_vert_frag(&mut self, a_shader_vert: Box<dyn Shader>, a_shader_frag: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>{
     Err(RendererError::Unimplemented)
   }
+
+  fn gen_buffer_vertex(&mut self, a_verts: std::vec::Vec<f32>) -> Box<dyn Vertices>{
+    Box::new(VerticesVulkan{id: 0})
+  }
+
+  fn gen_geometry(&mut self, a_buffer: Box<dyn Vertices>) -> Box<dyn Geometry>{
+    Box::new(GeometryVulkan{id: 0})
+  }
+
+  fn use_program(&mut self, a_program: Box<dyn Program>){
+  }
+
+  fn draw_geometry(&mut self, a_geometry: &Box<dyn Geometry>){}
 }
 
 impl RendererVulkan{
