@@ -4,9 +4,9 @@ extern crate libc;
 
 //mod renderer;
 
-use crate::renderer;
-use crate::renderer_opengl;
-use crate::renderer_vulkan;
+use crate::gpu::renderer;
+use crate::gpu::renderer_opengl;
+use crate::gpu::renderer_vulkan;
 
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 

@@ -5,7 +5,7 @@ extern crate gl;
 use std::ffi::{CString, CStr};
 use glam::{Vec4, IVec2};
 
-use crate::renderer::*;
+use crate::gpu::renderer::*;
 
 pub struct ProgramOpenGL {
   id: gl::types::GLuint

@@ -1,7 +1,7 @@
 
 use glam::{Vec4, IVec2};
 
-use crate::renderer::*;
+use crate::gpu::renderer::*;
 
 pub struct VerticesVulkan {
   id: i32
