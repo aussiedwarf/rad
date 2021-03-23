@@ -160,27 +160,43 @@ impl MainWindow {
       Err(res) => return
     };
 
-    let shader_program = match self.renderer.load_program_vert_frag(shader_vertex, shader_frag){
+    let mut shader_program = match self.renderer.load_program_vert_frag(shader_vertex, shader_frag){
       Ok(res) => res,
       Err(res) => return
     };
 
+    let uniform = self.renderer.get_uniform(&mut shader_program, "u_texture");
+
     let verts: std::vec::Vec<f32> = vec![
       -1.0, -1.0, 0.0, 0.0,
-      1.0, -1.0, 0.0, 0.0,
-      1.0, 1.0, 0.0, 0.0,
-      1.0, 1.0, 0.0, 0.0,
-      -1.0, 1.0, 0.0, 0.0,
+      1.0, -1.0, 1.0, 0.0,
+      1.0, 1.0, 1.0, 1.0,
+      1.0, 1.0, 1.0, 1.0,
+      -1.0, 1.0, 0.0, 1.0,
       -1.0, -1.0, 0.0, 0.0];
 
     let vert_buffer = self.renderer.gen_buffer_vertex(verts);
 
     let geometry = self.renderer.gen_geometry(vert_buffer);
 
-    self.renderer.use_program(shader_program);
     
-    self.renderer.set_clear_color(Vec4::new(0.5, 0.3, 0.3, 2.0));
+
+    let img = match image::open("image.jpg"){
+      Ok(res) => res,
+      Err(res) => return
+    };
+
+    let mut texture = self.renderer.gen_buffer_texture();
+
+    self.renderer.load_texture(img, &mut texture);
+    
+    self.renderer.set_clear_color(Vec4::new(0.0, 0.0, 0.0, 1.0));
     self.renderer.set_viewport(IVec2::new(0,0), IVec2::new(self.width, self.height));
+
+    self.renderer.use_program(shader_program);
+    self.renderer.set_uniform(&uniform);
+    self.renderer.set_texture(&texture);
+
 
     let mut event_pump = self.sdl_context.event_pump().unwrap();
     let mut i = 0;

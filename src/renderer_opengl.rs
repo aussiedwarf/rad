@@ -50,6 +50,28 @@ impl Geometry for GeometryOpenGL {
   }
 }
 
+pub struct TextureOpenGL {
+  id: gl::types::GLuint,
+  width: u32,
+  height: u32
+}
+
+impl Texture for TextureOpenGL {
+  fn any(&self) -> &dyn std::any::Any{
+    self
+  }
+}
+
+pub struct UniformOpenGL {
+  id: gl::types::GLint
+}
+
+impl Uniform for UniformOpenGL {
+  fn any(&self) -> &dyn std::any::Any{
+    self
+  }
+}
+
 pub struct RendererOpenGL {
   pub gl_context: sdl2::video::GLContext,
   pub version_major: i32,
@@ -272,6 +294,45 @@ impl Renderer for RendererOpenGL {
     Ok(Box::new(ProgramOpenGL{id: program_id}))
   }
 
+  fn get_uniform(&mut self, a_shader: &mut Box<dyn Program>, a_name: &str) -> Box<dyn Uniform>{
+    let shader = match a_shader.any().downcast_ref::<ProgramOpenGL>() {
+      Some(res) => res,
+      None => panic!("Invalid shader cast")
+    };
+
+    let c_str = match CString::new(a_name){
+      Ok(res) => res,
+      Err(res) => panic!("Invalid text cast")
+    };
+
+    let location = unsafe{gl::GetUniformLocation(shader.id, c_str.as_ptr())};
+
+    Box::new(UniformOpenGL{id: location})
+  }
+
+  fn set_uniform(&mut self, a_uniform: &Box<dyn Uniform>){
+    let uniform = match a_uniform.any().downcast_ref::<UniformOpenGL>() {
+      Some(res) => res,
+      None => panic!("Invalid uniform cast")
+    };
+
+    unsafe{
+      gl::Uniform1i(uniform.id, 0);
+    }
+  }
+
+  fn set_texture(&mut self, a_texture: &Box<dyn Texture>){
+    let texture = match a_texture.any().downcast_ref::<TextureOpenGL>() {
+      Some(res) => res,
+      None => panic!("Invalid uniform cast")
+    };
+
+    unsafe{
+      gl::ActiveTexture(gl::TEXTURE0 + 0);
+      gl::BindTexture(gl::TEXTURE_2D,  texture.id);
+    }
+  }
+
   fn gen_buffer_vertex(&mut self, a_verts: std::vec::Vec<f32>) -> Box<dyn Vertices>{
     let mut vbo: gl::types::GLuint = 0;
     unsafe {
@@ -313,22 +374,56 @@ impl Renderer for RendererOpenGL {
         (4 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
         std::ptr::null() // offset of the first component
       );
-      /*
+      
       gl::EnableVertexAttribArray(1); // this is "layout (location = 0)" in vertex shader
       gl::VertexAttribPointer(
         1, // index of the generic vertex attribute ("layout (location = 0)")
         2, // the number of components per generic vertex attribute
         gl::FLOAT, // data type
         gl::FALSE, // normalized (int-to-float conversion)
-        (2 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
-        std::ptr::null() // offset of the first component
+        (4 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
+        (2 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid // offset of the first component
       );
-      */
+      
 
       gl::BindBuffer(gl::ARRAY_BUFFER, 0);
       gl::BindVertexArray(0);
     }
     Box::new(GeometryOpenGL{id:vao, num: buffer.num})
+  }
+
+  fn gen_buffer_texture(&mut self) -> Box<dyn Texture>{
+    let mut id: gl::types::GLuint = 0;
+    unsafe {
+      gl::GenTextures(1, &mut id);
+    }
+
+    Box::new(TextureOpenGL{
+      id: id,
+      width: 0,
+      height: 0})
+  }
+
+  fn load_texture(&mut self, a_image: image::DynamicImage, a_texture: &mut Box<dyn Texture>){
+    let texture = match a_texture.any().downcast_ref::<TextureOpenGL>() {
+      Some(res) => res,
+      None => panic!("Invalid texture")
+    };
+
+    let bgra_image = a_image.to_bgra8();
+
+    unsafe{
+      gl::BindTexture(gl::TEXTURE_2D, texture.id);
+      gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA as i32, bgra_image.width() as i32, bgra_image.height() as i32, 0, 
+        gl::BGRA, gl::UNSIGNED_BYTE, bgra_image.as_raw().as_ptr() as *const std::os::raw::c_void);
+
+      gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
+      gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
+      gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR_MIPMAP_LINEAR as i32);
+      gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+
+      gl::GenerateMipmap(gl::TEXTURE_2D);
+    }
   }
 
   fn use_program(&mut self, a_program: Box<dyn Program>){
@@ -354,7 +449,7 @@ impl Renderer for RendererOpenGL {
         0, // starting index in the enabled arrays
         geometry.num // number of indices to be rendered
       );
-  }
+    }
   }
 
 }
@@ -405,6 +500,13 @@ impl Drop for VerticesOpenGL {
   }
 }
 
+impl Drop for TextureOpenGL {
+  fn drop(&mut self) {
+    unsafe {
+      gl::DeleteTextures(1, &mut self.id);
+    }
+  }
+}
 
 fn init_gl_context(a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> Result<sdl2::video::GLContext, RendererError> {
   //let mut attempt = true;

@@ -74,6 +74,7 @@ pub trait Shader{
 
 
 pub trait Texture{
+  fn any(&self) -> &dyn std::any::Any;
 }
 
 
@@ -87,8 +88,8 @@ pub trait Geometry{
 }
 
 
-pub struct Image{
-
+pub trait Uniform{
+  fn any(&self) -> &dyn std::any::Any;
 }
 
 
@@ -125,20 +126,19 @@ pub trait Renderer {
   fn load_shader(&mut self, a_shader_type: ShaderType, a_source: &str) -> Result<Box<dyn Shader>, RendererError>;
   fn load_program_vert_frag(&mut self, a_shader_vert: Box<dyn Shader>, a_shader_frag: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>;
 
+  fn get_uniform(&mut self, a_shader: &mut Box<dyn Program>, a_name: &str) -> Box<dyn Uniform>;
+  fn set_uniform(&mut self, a_uniform: &Box<dyn Uniform>);
+  fn set_texture(&mut self, a_texture: &Box<dyn Texture>);
   /*
   fn load_program_compute(&mut self, a_shader: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>;
-
-  
-
-  fn gen_buffer_texture() -> Box<dyn Texture>;
-  fn load_texture(&mut self, a_image: Image) -> Box<dyn Texture>;
-
-  fn load_vertex(&mut self, a_vertices: f32);
   */
 
   fn gen_buffer_vertex(&mut self, a_verts: std::vec::Vec<f32>) -> Box<dyn Vertices>;
 
   fn gen_geometry(&mut self, a_buffer: Box<dyn Vertices>) -> Box<dyn Geometry>;
+
+  fn gen_buffer_texture(&mut self) -> Box<dyn Texture>;
+  fn load_texture(&mut self, a_image: image::DynamicImage, a_texture: &mut Box<dyn Texture>);
 
   fn use_program(&mut self, a_program: Box<dyn Program>);
 

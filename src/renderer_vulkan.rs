@@ -23,6 +23,26 @@ impl Geometry for GeometryVulkan {
   }
 }
 
+pub struct TextureVulkan {
+  id: i32
+}
+
+impl Texture for TextureVulkan {
+  fn any(&self) -> &dyn std::any::Any{
+    self
+  }
+}
+
+pub struct UniformVulkan {
+  id: i32
+}
+
+impl Uniform for UniformVulkan {
+  fn any(&self) -> &dyn std::any::Any{
+    self
+  }
+}
+
 pub struct RendererVulkan {
   pub version_major: i32,
 
@@ -80,12 +100,29 @@ impl Renderer for RendererVulkan {
     Err(RendererError::Unimplemented)
   }
 
+  fn get_uniform(&mut self, a_shader: &mut Box<dyn Program>, a_name: &str) -> Box<dyn Uniform>{
+    Box::new(UniformVulkan{id: 0})
+  }
+
+  fn set_uniform(&mut self, a_uniform: &Box<dyn Uniform>){
+  }
+
+  fn set_texture(&mut self, a_texture: &Box<dyn Texture>){
+  }
+
   fn gen_buffer_vertex(&mut self, a_verts: std::vec::Vec<f32>) -> Box<dyn Vertices>{
     Box::new(VerticesVulkan{id: 0})
   }
 
   fn gen_geometry(&mut self, a_buffer: Box<dyn Vertices>) -> Box<dyn Geometry>{
     Box::new(GeometryVulkan{id: 0})
+  }
+
+  fn gen_buffer_texture(&mut self) -> Box<dyn Texture>{
+    Box::new(TextureVulkan{id: 0})
+  }
+
+  fn load_texture(&mut self, a_image: image::DynamicImage, a_texture: &mut Box<dyn Texture>){
   }
 
   fn use_program(&mut self, a_program: Box<dyn Program>){
