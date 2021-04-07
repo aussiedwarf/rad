@@ -229,7 +229,7 @@ impl MainWindow {
       // The rest of the game loop goes here...
       self.renderer.clear(renderer::RendererClearType::Color);
 
-      self.renderer.draw_mesh(&mesh);
+      self.renderer.draw_mesh(&mut mesh);
       
       self.window.gl_swap_window();
       //self.canvas.present();

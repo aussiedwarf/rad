@@ -7,11 +7,11 @@ pub trait Material{
   fn num_uniforms(&self) -> usize;
   fn num_samplers(&self) -> usize;
 
-  fn get_uniform(&self, a_index: usize) -> &Box<dyn Uniform>;
+  fn get_uniform(&mut self, a_index: usize) -> &mut Box<dyn Uniform>;
   //fn set_uniform(&self, a_index: usize, a_uniform: dyn Uniform);
   //fn add_uniform(&self, a_uniform: dyn Uniform);
 
-  fn get_sampler(&self, a_index: usize) -> &Box<dyn Sampler>;
+  fn get_sampler(&mut self, a_index: usize) -> &mut Box<dyn Sampler>;
   //fn set_texture(&self, a_index: usize, a_uniform: dyn Sampler);
   //fn add_texture(&self, a_uniform: dyn Sampler);
 
@@ -30,14 +30,14 @@ impl Material for MaterialBasic {
     self.samplers.len()
   }
 
-  fn get_uniform(&self, a_index: usize) -> &Box<dyn Uniform>{
-    &self.uniforms[a_index]
+  fn get_uniform(&mut self, a_index: usize) -> &mut Box<dyn Uniform>{
+    &mut self.uniforms[a_index]
   }
   //fn set_uniform(&self, a_index: usize, a_uniform: dyn Uniform){}
   //fn add_uniform(&self, a_uniform: dyn Uniform){}
 
-  fn get_sampler(&self, a_index: usize) -> &Box<dyn Sampler>{
-    &self.samplers[a_index]
+  fn get_sampler(&mut self, a_index: usize) -> &mut Box<dyn Sampler>{
+    &mut self.samplers[a_index]
   }
   //fn set_texture(&self, a_index: usize, a_uniform: dyn Sampler){}
   //fn add_texture(&self, a_uniform: dyn Sampler){}

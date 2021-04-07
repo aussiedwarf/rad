@@ -7,6 +7,7 @@ use glam::*;
 
 use crate::gpu::material::*;
 
+#[allow(dead_code)]
 #[derive(Copy, Clone)]
 pub enum RendererType {
   OpenGL,
@@ -16,6 +17,7 @@ pub enum RendererType {
   Metal
 }
 
+#[allow(dead_code)]
 #[derive(Copy, Clone)]
 pub enum ShaderType{
   Vertex,
@@ -26,7 +28,7 @@ pub enum ShaderType{
   Compute
 }
 
-
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum RendererError {
   Error,
@@ -35,11 +37,27 @@ pub enum RendererError {
   Unimplemented
 }
 
+#[allow(dead_code)]
+#[derive(Copy, Clone)]
 pub enum VariableType {
   Float,
   Int,
   Uint
 }
+
+#[allow(dead_code)]
+#[derive(Copy, Clone)]
+pub enum ComponentType {
+  Single,
+  Vec2,
+  Vec3,
+  Vec4,
+  Mat2x2,
+  Mat3x3,
+  Mat4x4
+}
+
+
 /*
 #[derive(Copy, Clone)]
 pub enum RendererClearType{
@@ -48,7 +66,10 @@ pub enum RendererClearType{
   RendererClearStencil = 0x4
 }
 */
+
 bitflags! {
+  #[allow(non_upper_case_globals)]
+  #[allow(dead_code)]
   pub struct RendererClearType: u32 {
     const None = 0b00000000;
     const Color = 0b00000001;
@@ -98,7 +119,7 @@ pub trait Geometry{
 
 
 pub trait Uniform{
-  fn any(&self) -> &dyn std::any::Any;
+  fn any(&mut self) -> &mut std::any::Any;
 
   fn set_f32(&self, a: f32);
   fn set_vec2f32(&self, a: Vec2);
@@ -175,5 +196,5 @@ pub trait Renderer {
   fn use_program(&mut self, a_program: &Box<dyn Program>);
 
   fn draw_geometry(&mut self, a_geometry: &Box<dyn Geometry>);
-  fn draw_mesh(&mut self, a_mesh: &Box<Mesh>);
+  fn draw_mesh(&mut self, a_mesh: &mut Box<Mesh>);
 }

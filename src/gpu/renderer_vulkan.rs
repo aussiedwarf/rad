@@ -56,7 +56,7 @@ pub struct UniformVulkan {
 
 impl Uniform for UniformVulkan {
   
-  fn any(&self) -> &dyn std::any::Any{
+  fn any(&mut self) -> &mut std::any::Any{
     self
   }
 
@@ -164,7 +164,7 @@ impl Renderer for RendererVulkan {
   fn use_program(&mut self, a_program: &Box<dyn Program>){}
 
   fn draw_geometry(&mut self, a_geometry: &Box<dyn Geometry>){}
-  fn draw_mesh(&mut self, a_geometry: &Box<Mesh>){}
+  fn draw_mesh(&mut self, a_geometry: &mut Box<Mesh>){}
 }
 
 impl RendererVulkan{

@@ -2,7 +2,7 @@
 
 extern crate gl;
 
-use std::ffi::{CString, CStr};
+use std::ffi::{CString};
 use glam::*;
 use std::rc::Rc;
 
@@ -68,6 +68,7 @@ impl Geometry for GeometryOpenGL {
   }
 }
 
+#[allow(dead_code)]
 pub struct TextureOpenGL {
   id: gl::types::GLuint,
   width: u32,
@@ -80,19 +81,20 @@ impl Texture for TextureOpenGL {
   }
 }
 
+#[allow(dead_code)]
 pub struct UniformOpenGL {
   id: gl::types::GLint,
   name: String,
   variable_type: VariableType,
+  component_type: ComponentType,
   component_bits: i32,
-  num_components: i32,
   data: std::vec::Vec<u8>,
-  uploaded_data: std::vec::Vec<u8>,
-  uploaded: bool
+  modified: bool
 }
 
+#[allow(dead_code)]
 impl Uniform for UniformOpenGL {
-  fn any(&self) -> &dyn std::any::Any{
+  fn any(&mut self) -> &mut std::any::Any{
     self
   }
 
@@ -122,7 +124,7 @@ pub struct RendererOpenGL {
   program_id: gl::types::GLint,
 }
 
-
+#[allow(dead_code)]
 impl Renderer for RendererOpenGL {
   fn name(&self) -> String{
     String::from("OpenGL")
@@ -352,11 +354,10 @@ impl Renderer for RendererOpenGL {
       id: location, 
       name: a_name.to_string(),
       variable_type: VariableType::Float,
+      component_type: ComponentType::Single,
       component_bits: component_bits,
-      num_components: num_components,
       data: vec![0; (num_components * component_bits / 8) as usize],
-      uploaded_data: vec![0; (num_components * component_bits / 8) as usize],
-      uploaded: false
+      modified: true
     })
   }
 
@@ -530,7 +531,7 @@ impl Renderer for RendererOpenGL {
     }
   }
 
-  fn draw_mesh(&mut self, a_mesh: &Box<Mesh>){
+  fn draw_mesh(&mut self, a_mesh: &mut Box<Mesh>){
     let geometry = match a_mesh.geometry.any().downcast_ref::<GeometryOpenGL>() {
       Some(res) => res,
       None => panic!("Invalid vertex")
@@ -567,6 +568,7 @@ impl Renderer for RendererOpenGL {
 
 }
 
+#[allow(dead_code)]
 impl RendererOpenGL {
   pub fn new(a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> Result<Self, RendererError>{
     let gl_context = match init_gl_context(&a_video_subsystem, &a_window) {
@@ -589,8 +591,183 @@ impl RendererOpenGL {
     })
   }
 
-  pub fn update_uniform(&self, a_uniform: &Box<dyn Uniform>){
+  pub fn update_uniform(&self, a_uniform: &mut Box<dyn Uniform>){
+    let mut uniform = match a_uniform.any().downcast_mut::<UniformOpenGL>() {
+      Some(res) => res,
+      None => panic!("Invalid uniform cast")
+    };
 
+    if uniform.modified {
+      match uniform.variable_type {
+        VariableType::Float => {
+          match uniform.component_type{
+            ComponentType::Single => {
+              match uniform.component_bits{
+                32 => {
+                  unsafe{
+                    gl::Uniform1fv(uniform.id, 1, uniform.data.as_ptr() as *const f32);
+                  }
+                }
+                _ => panic!("Invalid number of bits")
+              };
+            },
+            ComponentType::Vec2 => {
+              match uniform.component_bits{
+                32 => {
+                  unsafe{
+                    gl::Uniform2fv(uniform.id, 1, uniform.data.as_ptr() as *const f32);
+                  }
+                }
+                _ => panic!("Invalid number of bits")
+              };
+            },
+            ComponentType::Vec3 => {
+              match uniform.component_bits{
+                32 => {
+                  unsafe{
+                    gl::Uniform3fv(uniform.id, 1, uniform.data.as_ptr() as *const f32);
+                  }
+                }
+                _ => panic!("Invalid number of bits")
+              };
+            },
+            ComponentType::Vec4 => {
+              match uniform.component_bits{
+                32 => {
+                  unsafe{
+                    gl::Uniform4fv(uniform.id, 1, uniform.data.as_ptr() as *const f32);
+                  }
+                }
+                _ => panic!("Invalid number of bits")
+              };
+            },
+            ComponentType::Mat2x2 => {
+              match uniform.component_bits{
+                32 => {
+                  unsafe{
+                    gl::UniformMatrix2fv(uniform.id, 1, 0, uniform.data.as_ptr() as *const f32);
+                  }
+                }
+                _ => panic!("Invalid number of bits")
+              };
+            },
+            ComponentType::Mat3x3 => {
+              match uniform.component_bits{
+                32 => {
+                  unsafe{
+                    gl::UniformMatrix3fv(uniform.id, 1, 0, uniform.data.as_ptr() as *const f32);
+                  }
+                }
+                _ => panic!("Invalid number of bits")
+              };
+            },
+            ComponentType::Mat4x4 => {
+              match uniform.component_bits{
+                32 => {
+                  unsafe{
+                    gl::UniformMatrix4fv(uniform.id, 1, 0, uniform.data.as_ptr() as *const f32);
+                  }
+                }
+                _ => panic!("Invalid number of bits")
+              };
+            }
+            _ => panic!("Invalid number of components")
+          };
+        },
+        VariableType::Int => {
+          match uniform.component_type{
+            ComponentType::Single => {
+              match uniform.component_bits{
+                32 => {
+                  unsafe{
+                    gl::Uniform1iv(uniform.id, 1, uniform.data.as_ptr() as *const i32);
+                  }
+                }
+                _ => panic!("Invalid number of bits")
+              };
+            },
+            ComponentType::Vec2 => {
+              match uniform.component_bits{
+                32 => {
+                  unsafe{
+                    gl::Uniform2iv(uniform.id, 1, uniform.data.as_ptr() as *const i32);
+                  }
+                }
+                _ => panic!("Invalid number of bits")
+              };
+            },
+            ComponentType::Vec3 => {
+              match uniform.component_bits{
+                32 => {
+                  unsafe{
+                    gl::Uniform3iv(uniform.id, 1, uniform.data.as_ptr() as *const i32);
+                  }
+                }
+                _ => panic!("Invalid number of bits")
+              };
+            },
+            ComponentType::Vec4 => {
+              match uniform.component_bits{
+                32 => {
+                  unsafe{
+                    gl::Uniform4iv(uniform.id, 1, uniform.data.as_ptr() as *const i32);
+                  }
+                }
+                _ => panic!("Invalid number of bits")
+              };
+            },
+            _ => panic!("Invalid number of components")
+          }
+        },
+        VariableType::Uint => {
+          match uniform.component_type{
+            ComponentType::Single => {
+              match uniform.component_bits{
+                32 => {
+                  unsafe{
+                    gl::Uniform1uiv(uniform.id, 1, uniform.data.as_ptr() as *const u32);
+                  }
+                }
+                _ => panic!("Invalid number of bits")
+              };
+            },
+            ComponentType::Vec2 => {
+              match uniform.component_bits{
+                32 => {
+                  unsafe{
+                    gl::Uniform2uiv(uniform.id, 1, uniform.data.as_ptr() as *const u32);
+                  }
+                }
+                _ => panic!("Invalid number of bits")
+              };
+            },
+            ComponentType::Vec3 => {
+              match uniform.component_bits{
+                32 => {
+                  unsafe{
+                    gl::Uniform3uiv(uniform.id, 1, uniform.data.as_ptr() as *const u32);
+                  }
+                }
+                _ => panic!("Invalid number of bits")
+              };
+            },
+            ComponentType::Vec4 => {
+              match uniform.component_bits{
+                32 => {
+                  unsafe{
+                    gl::Uniform4uiv(uniform.id, 1, uniform.data.as_ptr() as *const u32);
+                  }
+                }
+                _ => panic!("Invalid number of bits")
+              };
+            },
+            _ => panic!("Invalid number of components")
+          }
+        }
+      };
+
+      uniform.modified = false;
+    }
   }
 
   pub fn update_sampler(&self, a_sampler: &Box<dyn Sampler>){
