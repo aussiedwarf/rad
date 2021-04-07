@@ -2,7 +2,10 @@
 extern crate glam;
 
 use std::fmt;
-use glam::{Vec4, IVec2};
+use std::rc::Rc;
+use glam::*;
+
+use crate::gpu::material::*;
 
 #[derive(Copy, Clone)]
 pub enum RendererType {
@@ -30,6 +33,12 @@ pub enum RendererError {
   ShaderCompile,
   InvalidCast,
   Unimplemented
+}
+
+pub enum VariableType {
+  Float,
+  Int,
+  Uint
 }
 /*
 #[derive(Copy, Clone)]
@@ -90,8 +99,26 @@ pub trait Geometry{
 
 pub trait Uniform{
   fn any(&self) -> &dyn std::any::Any;
+
+  fn set_f32(&self, a: f32);
+  fn set_vec2f32(&self, a: Vec2);
+  fn set_vec3f32(&self, a: Vec3);
+  fn set_vec4f32(&self, a: Vec4);
+  fn set_mat4x4f32(&self, a: Mat4);
+
+  fn get_name(&self) -> &str;
 }
 
+pub trait Sampler{
+  fn any(&self) -> &dyn std::any::Any;
+
+  fn set_name(&mut self, a_name: &str);
+}
+
+pub struct Mesh{
+  pub geometry: Box<dyn Geometry>,
+  pub material: Box<dyn Material>
+}
 
 pub trait Renderer {
   fn name(&self) -> String;
@@ -127,20 +154,26 @@ pub trait Renderer {
   fn load_program_vert_frag(&mut self, a_shader_vert: Box<dyn Shader>, a_shader_frag: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>;
 
   fn get_uniform(&mut self, a_shader: &mut Box<dyn Program>, a_name: &str) -> Box<dyn Uniform>;
-  fn set_uniform(&mut self, a_uniform: &Box<dyn Uniform>);
-  fn set_texture(&mut self, a_texture: &Box<dyn Texture>);
+  //fn set_uniform(&mut self, a_uniform: &Box<dyn Uniform>);
+  //fn set_texture(&mut self, a_texture: &Box<dyn Texture>);
   /*
   fn load_program_compute(&mut self, a_shader: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>;
   */
 
-  fn gen_buffer_vertex(&mut self, a_verts: std::vec::Vec<f32>) -> Box<dyn Vertices>;
+  fn gen_buffer_vertex(&mut self, a_verts: &std::vec::Vec<f32>) -> Box<dyn Vertices>;
 
-  fn gen_geometry(&mut self, a_buffer: Box<dyn Vertices>) -> Box<dyn Geometry>;
+  fn gen_geometry(&mut self, a_buffer: &Box<dyn Vertices>) -> Box<dyn Geometry>;
+
+  fn gen_mesh(&mut self, a_geometry: Box<dyn Geometry>, a_material: Box<dyn Material>) -> Box<Mesh>;
 
   fn gen_buffer_texture(&mut self) -> Box<dyn Texture>;
-  fn load_texture(&mut self, a_image: image::DynamicImage, a_texture: &mut Box<dyn Texture>);
 
-  fn use_program(&mut self, a_program: Box<dyn Program>);
+  fn gen_sampler(&mut self, a_texture: Rc<dyn Texture>) -> Box<dyn Sampler>;
+
+  fn load_texture(&mut self, a_image: &image::DynamicImage, a_texture: &mut Box<dyn Texture>);
+
+  fn use_program(&mut self, a_program: &Box<dyn Program>);
 
   fn draw_geometry(&mut self, a_geometry: &Box<dyn Geometry>);
+  fn draw_mesh(&mut self, a_mesh: &Box<Mesh>);
 }

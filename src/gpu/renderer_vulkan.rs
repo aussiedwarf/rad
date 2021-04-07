@@ -1,7 +1,23 @@
 
-use glam::{Vec4, IVec2};
+use glam::*;
 
 use crate::gpu::renderer::*;
+use crate::gpu::material::*;
+use std::rc::Rc;
+
+pub struct SamplerVulkan{
+  name: String,
+}
+
+impl Sampler for SamplerVulkan {
+  fn any(&self) -> &dyn std::any::Any{
+    self
+  }
+
+  fn set_name(&mut self, a_name: &str){
+    self.name = String::from(a_name);
+  }
+}
 
 pub struct VerticesVulkan {
   id: i32
@@ -34,13 +50,23 @@ impl Texture for TextureVulkan {
 }
 
 pub struct UniformVulkan {
-  id: i32
+  id: i32,
+  name: String,
 }
 
 impl Uniform for UniformVulkan {
+  
   fn any(&self) -> &dyn std::any::Any{
     self
   }
+
+  fn set_f32(&self, a: f32){}
+  fn set_vec2f32(&self, a: Vec2){}
+  fn set_vec3f32(&self, a: Vec3){}
+  fn set_vec4f32(&self, a: Vec4){}
+  fn set_mat4x4f32(&self, a: Mat4){}
+  
+  fn get_name(&self) -> &str{&self.name}
 }
 
 pub struct RendererVulkan {
@@ -101,34 +127,44 @@ impl Renderer for RendererVulkan {
   }
 
   fn get_uniform(&mut self, a_shader: &mut Box<dyn Program>, a_name: &str) -> Box<dyn Uniform>{
-    Box::new(UniformVulkan{id: 0})
+    Box::new(UniformVulkan{id: 0, name: a_name.to_string()})
   }
 
-  fn set_uniform(&mut self, a_uniform: &Box<dyn Uniform>){
-  }
+  //fn set_uniform(&mut self, a_uniform: &Box<dyn Uniform>){}
 
-  fn set_texture(&mut self, a_texture: &Box<dyn Texture>){
-  }
+  //fn set_texture(&mut self, a_texture: &Box<dyn Texture>){}
 
-  fn gen_buffer_vertex(&mut self, a_verts: std::vec::Vec<f32>) -> Box<dyn Vertices>{
+  fn gen_buffer_vertex(&mut self, a_verts: &std::vec::Vec<f32>) -> Box<dyn Vertices>{
     Box::new(VerticesVulkan{id: 0})
   }
 
-  fn gen_geometry(&mut self, a_buffer: Box<dyn Vertices>) -> Box<dyn Geometry>{
+  fn gen_geometry(&mut self, a_buffer: &Box<dyn Vertices>) -> Box<dyn Geometry>{
     Box::new(GeometryVulkan{id: 0})
   }
+
+  fn gen_mesh(&mut self, a_geometry: Box<dyn Geometry>, a_material: Box<dyn Material>) -> Box<Mesh>{
+    Box::new(Mesh{
+      geometry: a_geometry,
+      material: a_material
+      })
+  }
+
 
   fn gen_buffer_texture(&mut self) -> Box<dyn Texture>{
     Box::new(TextureVulkan{id: 0})
   }
 
-  fn load_texture(&mut self, a_image: image::DynamicImage, a_texture: &mut Box<dyn Texture>){
+  fn gen_sampler(&mut self, a_texture: Rc<dyn Texture>) -> Box<dyn Sampler>{
+    Box::new(SamplerVulkan{name: String::from("")})
   }
 
-  fn use_program(&mut self, a_program: Box<dyn Program>){
+  fn load_texture(&mut self, a_image: &image::DynamicImage, a_texture: &mut Box<dyn Texture>){
   }
+
+  fn use_program(&mut self, a_program: &Box<dyn Program>){}
 
   fn draw_geometry(&mut self, a_geometry: &Box<dyn Geometry>){}
+  fn draw_mesh(&mut self, a_geometry: &Box<Mesh>){}
 }
 
 impl RendererVulkan{

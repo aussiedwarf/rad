@@ -7,6 +7,7 @@ extern crate libc;
 use crate::gpu::renderer;
 use crate::gpu::renderer_opengl;
 use crate::gpu::renderer_vulkan;
+use crate::gpu::material;
 
 use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 
@@ -16,7 +17,9 @@ use std::time::Duration;
 use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
+use std::rc::Rc;
 use glam::{Vec4, IVec2};
+
 
 #[derive(Debug, Clone)]
 pub enum WindowError {
@@ -165,7 +168,21 @@ impl MainWindow {
       Err(res) => return
     };
 
-    let uniform = self.renderer.get_uniform(&mut shader_program, "u_texture");
+    let img = match image::open("image.jpg"){
+      Ok(res) => res,
+      Err(res) => return
+    };
+
+    //only need to flip with opengl
+    let img = img.flipv();
+
+    let mut texture = self.renderer.gen_buffer_texture();
+
+    self.renderer.load_texture(&img, &mut texture);
+
+    
+
+    //let uniform = self.renderer.get_uniform(&mut shader_program, "u_texture");
 
     let verts: std::vec::Vec<f32> = vec![
       -1.0, -1.0, 0.0, 0.0,
@@ -175,27 +192,23 @@ impl MainWindow {
       -1.0, 1.0, 0.0, 1.0,
       -1.0, -1.0, 0.0, 0.0];
 
-    let vert_buffer = self.renderer.gen_buffer_vertex(verts);
+    let vert_buffer = self.renderer.gen_buffer_vertex(&verts);
 
-    let geometry = self.renderer.gen_geometry(vert_buffer);
+    let geometry = self.renderer.gen_geometry(&vert_buffer);
 
-    
+    let material = Box::new(material::MaterialBasic::new(shader_program, 
+      self.renderer.gen_sampler(texture.into())));
 
-    let img = match image::open("image.jpg"){
-      Ok(res) => res,
-      Err(res) => return
-    };
+    //material.set_color_texture(&texture);
 
-    let mut texture = self.renderer.gen_buffer_texture();
-
-    self.renderer.load_texture(img, &mut texture);
+    let mut mesh = self.renderer.gen_mesh(geometry, material);
     
     self.renderer.set_clear_color(Vec4::new(0.0, 0.0, 0.0, 1.0));
     self.renderer.set_viewport(IVec2::new(0,0), IVec2::new(self.width, self.height));
 
-    self.renderer.use_program(shader_program);
-    self.renderer.set_uniform(&uniform);
-    self.renderer.set_texture(&texture);
+    //self.renderer.use_program(&shader_program);
+    //self.renderer.set_uniform(&uniform);
+    //self.renderer.set_texture(&texture);
 
 
     let mut event_pump = self.sdl_context.event_pump().unwrap();
@@ -216,7 +229,7 @@ impl MainWindow {
       // The rest of the game loop goes here...
       self.renderer.clear(renderer::RendererClearType::Color);
 
-      self.renderer.draw_geometry(&geometry);
+      self.renderer.draw_mesh(&mesh);
       
       self.window.gl_swap_window();
       //self.canvas.present();

@@ -3,9 +3,27 @@
 extern crate gl;
 
 use std::ffi::{CString, CStr};
-use glam::{Vec4, IVec2};
+use glam::*;
+use std::rc::Rc;
 
 use crate::gpu::renderer::*;
+use crate::gpu::material::*;
+
+pub struct SamplerOpenGL{
+  name: String,
+  texture: Rc<dyn Texture>,
+  uniform: gl::types::GLint,
+}
+
+impl Sampler for SamplerOpenGL {
+  fn any(&self) -> &dyn std::any::Any{
+    self
+  }
+
+  fn set_name(&mut self, a_name: &str){
+    self.name = String::from(a_name);
+  }
+}
 
 pub struct ProgramOpenGL {
   id: gl::types::GLuint
@@ -40,7 +58,7 @@ impl Vertices for VerticesOpenGL {
 }
 
 pub struct GeometryOpenGL {
-  id: gl::types::GLuint,
+  vao: gl::types::GLuint,
   num: gl::types::GLsizei
 }
 
@@ -63,12 +81,29 @@ impl Texture for TextureOpenGL {
 }
 
 pub struct UniformOpenGL {
-  id: gl::types::GLint
+  id: gl::types::GLint,
+  name: String,
+  variable_type: VariableType,
+  component_bits: i32,
+  num_components: i32,
+  data: std::vec::Vec<u8>,
+  uploaded_data: std::vec::Vec<u8>,
+  uploaded: bool
 }
 
 impl Uniform for UniformOpenGL {
   fn any(&self) -> &dyn std::any::Any{
     self
+  }
+
+  fn set_f32(&self, a: f32){}
+  fn set_vec2f32(&self, a: Vec2){}
+  fn set_vec3f32(&self, a: Vec3){}
+  fn set_vec4f32(&self, a: Vec4){}
+  fn set_mat4x4f32(&self, a: Mat4){}
+  
+  fn get_name(&self) -> &str{
+    &self.name
   }
 }
 
@@ -82,6 +117,9 @@ pub struct RendererOpenGL {
 
   viewport_pos: IVec2,
   viewport_size: IVec2,
+
+  vao: gl::types::GLint,
+  program_id: gl::types::GLint,
 }
 
 
@@ -307,9 +345,22 @@ impl Renderer for RendererOpenGL {
 
     let location = unsafe{gl::GetUniformLocation(shader.id, c_str.as_ptr())};
 
-    Box::new(UniformOpenGL{id: location})
+    let component_bits: i32 = 32;
+    let num_components: i32 = 4;
+
+    Box::new(UniformOpenGL{
+      id: location, 
+      name: a_name.to_string(),
+      variable_type: VariableType::Float,
+      component_bits: component_bits,
+      num_components: num_components,
+      data: vec![0; (num_components * component_bits / 8) as usize],
+      uploaded_data: vec![0; (num_components * component_bits / 8) as usize],
+      uploaded: false
+    })
   }
 
+  /*
   fn set_uniform(&mut self, a_uniform: &Box<dyn Uniform>){
     let uniform = match a_uniform.any().downcast_ref::<UniformOpenGL>() {
       Some(res) => res,
@@ -332,8 +383,9 @@ impl Renderer for RendererOpenGL {
       gl::BindTexture(gl::TEXTURE_2D,  texture.id);
     }
   }
+  */
 
-  fn gen_buffer_vertex(&mut self, a_verts: std::vec::Vec<f32>) -> Box<dyn Vertices>{
+  fn gen_buffer_vertex(&mut self, a_verts: &std::vec::Vec<f32>) -> Box<dyn Vertices>{
     let mut vbo: gl::types::GLuint = 0;
     unsafe {
       gl::GenBuffers(1, &mut vbo);
@@ -353,7 +405,7 @@ impl Renderer for RendererOpenGL {
     Box::new(VerticesOpenGL{id: vbo, num: (a_verts.len()/4) as gl::types::GLsizei})
   }
 
-  fn gen_geometry(&mut self, a_buffer: Box<dyn Vertices>) -> Box<dyn Geometry>{
+  fn gen_geometry(&mut self, a_buffer: &Box<dyn Vertices>) -> Box<dyn Geometry>{
     let buffer = match a_buffer.any().downcast_ref::<VerticesOpenGL>() {
       Some(res) => res,
       None => panic!("Invalid vertex")
@@ -372,7 +424,7 @@ impl Renderer for RendererOpenGL {
         gl::FLOAT, // data type
         gl::FALSE, // normalized (int-to-float conversion)
         (4 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
-        std::ptr::null() // offset of the first component
+        std::ptr::null() // offset of the first component in bytes
       );
       
       gl::EnableVertexAttribArray(1); // this is "layout (location = 0)" in vertex shader
@@ -382,15 +434,23 @@ impl Renderer for RendererOpenGL {
         gl::FLOAT, // data type
         gl::FALSE, // normalized (int-to-float conversion)
         (4 * std::mem::size_of::<f32>()) as gl::types::GLint, // stride (byte offset between consecutive attributes)
-        (2 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid // offset of the first component
+        (2 * std::mem::size_of::<f32>()) as *const gl::types::GLvoid // offset of the first component in bytes
       );
       
 
       gl::BindBuffer(gl::ARRAY_BUFFER, 0);
       gl::BindVertexArray(0);
     }
-    Box::new(GeometryOpenGL{id:vao, num: buffer.num})
+    Box::new(GeometryOpenGL{vao:vao, num: buffer.num})
   }
+
+  fn gen_mesh(&mut self, a_geometry: Box<dyn Geometry>, a_material: Box<dyn Material>) -> Box<Mesh>{
+    Box::new(Mesh{
+      geometry: a_geometry,
+      material: a_material
+      })
+  }
+
 
   fn gen_buffer_texture(&mut self) -> Box<dyn Texture>{
     let mut id: gl::types::GLuint = 0;
@@ -404,7 +464,13 @@ impl Renderer for RendererOpenGL {
       height: 0})
   }
 
-  fn load_texture(&mut self, a_image: image::DynamicImage, a_texture: &mut Box<dyn Texture>){
+  fn gen_sampler(&mut self, a_texture: Rc<dyn Texture>) -> Box<dyn Sampler>{
+    let sampler = SamplerOpenGL{name: String::from(""), texture: a_texture, uniform: -1};
+
+    Box::new(sampler)
+  }
+
+  fn load_texture(&mut self, a_image: &image::DynamicImage, a_texture: &mut Box<dyn Texture>){
     let texture = match a_texture.any().downcast_ref::<TextureOpenGL>() {
       Some(res) => res,
       None => panic!("Invalid texture")
@@ -426,13 +492,18 @@ impl Renderer for RendererOpenGL {
     }
   }
 
-  fn use_program(&mut self, a_program: Box<dyn Program>){
+  fn use_program(&mut self, a_program: &Box<dyn Program>){
     let program = match a_program.any().downcast_ref::<ProgramOpenGL>() {
       Some(res) => res,
       None => return
     };
-    unsafe {
-      gl::UseProgram(program.id);
+
+    if self.program_id != program.id as gl::types::GLint{
+      self.program_id = program.id as gl::types::GLint;
+
+      unsafe {
+        gl::UseProgram(program.id);
+      }
     }
   }
 
@@ -442,8 +513,50 @@ impl Renderer for RendererOpenGL {
       None => panic!("Invalid vertex")
     };
 
+    if self.vao != geometry.vao as gl::types::GLint{
+      self.vao = geometry.vao as gl::types::GLint;
+
+      unsafe {
+        gl::BindVertexArray(geometry.vao);
+      }
+    }
+
     unsafe {
-      gl::BindVertexArray(geometry.id);
+      gl::DrawArrays(
+        gl::TRIANGLES, // mode
+        0, // starting index in the enabled arrays
+        geometry.num // number of indices to be rendered
+      );
+    }
+  }
+
+  fn draw_mesh(&mut self, a_mesh: &Box<Mesh>){
+    let geometry = match a_mesh.geometry.any().downcast_ref::<GeometryOpenGL>() {
+      Some(res) => res,
+      None => panic!("Invalid vertex")
+    };
+
+    self.use_program(a_mesh.material.get_program());
+
+    if self.vao != geometry.vao as gl::types::GLint{
+      self.vao = geometry.vao as gl::types::GLint;
+
+      unsafe {
+        gl::BindVertexArray(geometry.vao);
+      }
+    }
+
+    let num_uniforms = a_mesh.material.num_uniforms();
+    for i in 0..num_uniforms {
+      self.update_uniform(a_mesh.material.get_uniform(i));
+    }
+
+    let num_samplers = a_mesh.material.num_samplers();
+    for i in 0..num_samplers {
+      self.update_sampler(a_mesh.material.get_sampler(i));
+    }
+
+    unsafe {
       gl::DrawArrays(
         gl::TRIANGLES, // mode
         0, // starting index in the enabled arrays
@@ -471,7 +584,34 @@ impl RendererOpenGL {
       clear_stencil: 0,
       viewport_pos: IVec2::new(0,0),
       viewport_size: IVec2::new(0,0),
+      vao: -1,
+      program_id: -1
     })
+  }
+
+  pub fn update_uniform(&self, a_uniform: &Box<dyn Uniform>){
+
+  }
+
+  pub fn update_sampler(&self, a_sampler: &Box<dyn Sampler>){
+    let sampler = match a_sampler.any().downcast_ref::<SamplerOpenGL>() {
+      Some(res) => res,
+      None => panic!("Invalid sampler cast")
+    };
+
+    unsafe{
+      gl::Uniform1i(sampler.uniform, 0);
+    }
+  
+    let texture = match sampler.texture.any().downcast_ref::<TextureOpenGL>() {
+      Some(res) => res,
+      None => panic!("Invalid uniform cast")
+    };
+
+    unsafe{
+      gl::ActiveTexture(gl::TEXTURE0 + 0);
+      gl::BindTexture(gl::TEXTURE_2D,  texture.id);
+    }
   }
 }
 
