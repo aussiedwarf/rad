@@ -1,6 +1,8 @@
 
 use crate::gpu::renderer::*;
 
+use glam::*;
+
 pub trait Material{
   fn any(&self) -> &dyn std::any::Any;
 
@@ -52,6 +54,8 @@ pub struct MaterialBasic{
   program: Box<dyn Program>,
   uniforms: std::vec::Vec<Box<dyn Uniform>>,
   samplers: std::vec::Vec<Box<dyn Sampler>>,
+
+  mvp: Mat4,
 }
 
 impl MaterialBasic{
@@ -60,8 +64,13 @@ impl MaterialBasic{
 
     samplers.push(a_sampler);
 
-    let mut material = MaterialBasic{program: a_program, uniforms: std::vec::Vec::new(), samplers: samplers};
+    let mut material = MaterialBasic{program: a_program, uniforms: std::vec::Vec::new(), samplers: samplers, mvp: Mat4::IDENTITY};
     material.samplers[0].set_name("u_color");
+
+    // let mut uniforms = std::vec::Vec::new();
+
+    // material.uniforms;
+    //uniforms
 
     material
   }

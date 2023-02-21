@@ -1,11 +1,14 @@
 
 extern crate glam;
 
+use crate::gpu::material::*;
+use crate::gpu::camera::*;
+
+
 use std::fmt;
 use std::rc::Rc;
 use glam::*;
 
-use crate::gpu::material::*;
 
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
@@ -119,7 +122,7 @@ pub trait Geometry{
 
 
 pub trait Uniform{
-  fn any(&mut self) -> &mut std::any::Any;
+  fn any(&mut self) -> &mut dyn std::any::Any;
 
   fn set_f32(&self, a: f32);
   fn set_vec2f32(&self, a: Vec2);
@@ -196,5 +199,5 @@ pub trait Renderer {
   fn use_program(&mut self, a_program: &Box<dyn Program>);
 
   fn draw_geometry(&mut self, a_geometry: &Box<dyn Geometry>);
-  fn draw_mesh(&mut self, a_mesh: &mut Box<Mesh>);
+  fn draw_mesh(&mut self, a_camera: &Camera, a_mesh: &mut Box<Mesh>);
 }

@@ -3,11 +3,12 @@
 extern crate gl;
 
 use std::ffi::{CString};
-use glam::*;
 use std::rc::Rc;
+use glam::*;
 
 use crate::gpu::renderer::*;
 use crate::gpu::material::*;
+use crate::gpu::camera::*;
 
 pub struct SamplerOpenGL{
   name: String,
@@ -94,7 +95,7 @@ pub struct UniformOpenGL {
 
 #[allow(dead_code)]
 impl Uniform for UniformOpenGL {
-  fn any(&mut self) -> &mut std::any::Any{
+  fn any(&mut self) -> &mut dyn std::any::Any{
     self
   }
 
@@ -531,7 +532,7 @@ impl Renderer for RendererOpenGL {
     }
   }
 
-  fn draw_mesh(&mut self, a_mesh: &mut Box<Mesh>){
+  fn draw_mesh(&mut self, a_camera: &Camera, a_mesh: &mut Box<Mesh>){
     let geometry = match a_mesh.geometry.any().downcast_ref::<GeometryOpenGL>() {
       Some(res) => res,
       None => panic!("Invalid vertex")
@@ -803,9 +804,9 @@ impl Drop for ShaderOpenGL {
 
 impl Drop for ProgramOpenGL {
   fn drop(&mut self) {
-      unsafe {
-          gl::DeleteProgram(self.id);
-      }
+    unsafe {
+      gl::DeleteProgram(self.id);
+    }
   }
 }
 

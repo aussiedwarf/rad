@@ -3,6 +3,7 @@ use glam::*;
 
 use crate::gpu::renderer::*;
 use crate::gpu::material::*;
+use crate::gpu::camera::*;
 use std::rc::Rc;
 
 pub struct SamplerVulkan{
@@ -56,7 +57,7 @@ pub struct UniformVulkan {
 
 impl Uniform for UniformVulkan {
   
-  fn any(&mut self) -> &mut std::any::Any{
+  fn any(&mut self) -> &mut dyn std::any::Any{
     self
   }
 
@@ -164,7 +165,7 @@ impl Renderer for RendererVulkan {
   fn use_program(&mut self, a_program: &Box<dyn Program>){}
 
   fn draw_geometry(&mut self, a_geometry: &Box<dyn Geometry>){}
-  fn draw_mesh(&mut self, a_geometry: &mut Box<Mesh>){}
+  fn draw_mesh(&mut self, a_camera: &Camera, a_geometry: &mut Box<Mesh>){}
 }
 
 impl RendererVulkan{

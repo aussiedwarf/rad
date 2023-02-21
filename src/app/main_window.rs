@@ -4,6 +4,7 @@ extern crate libc;
 
 //mod renderer;
 
+use crate::gpu::camera::*;
 use crate::gpu::renderer;
 use crate::gpu::renderer_opengl;
 use crate::gpu::renderer_vulkan;
@@ -18,7 +19,7 @@ use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
 use std::rc::Rc;
-use glam::{Vec4, IVec2};
+use glam::*;
 
 
 #[derive(Debug, Clone)]
@@ -210,6 +211,9 @@ impl MainWindow {
     //self.renderer.set_uniform(&uniform);
     //self.renderer.set_texture(&texture);
 
+    let mut camera = Camera::new();
+    camera.set_viewport(Vec2::new(self.width as f32, self.height as f32), Vec2::ZERO, Vec2::new(self.width as f32, self.height as f32), Vec2::ZERO);
+
 
     let mut event_pump = self.sdl_context.event_pump().unwrap();
     let mut i = 0;
@@ -229,7 +233,7 @@ impl MainWindow {
       // The rest of the game loop goes here...
       self.renderer.clear(renderer::RendererClearType::Color);
 
-      self.renderer.draw_mesh(&mut mesh);
+      self.renderer.draw_mesh(&camera, &mut mesh);
       
       self.window.gl_swap_window();
       //self.canvas.present();
