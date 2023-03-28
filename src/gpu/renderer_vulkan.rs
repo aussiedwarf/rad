@@ -51,23 +51,40 @@ impl Texture for TextureVulkan {
 }
 
 pub struct UniformVulkan {
-  id: i32,
-  name: String,
+  name: UniformName,
+  data: UniformData,
 }
 
 impl Uniform for UniformVulkan {
-  
   fn any(&mut self) -> &mut dyn std::any::Any{
     self
   }
 
-  fn set_f32(&self, a: f32){}
-  fn set_vec2f32(&self, a: Vec2){}
-  fn set_vec3f32(&self, a: Vec3){}
-  fn set_vec4f32(&self, a: Vec4){}
-  fn set_mat4x4f32(&self, a: Mat4){}
+  fn set_f32(&mut self, _a: f32){
+  }
+
+  fn get_f32(&self) -> f32{
+    0.0
+  }
+ 
+  fn get_name(&self) -> &str{
+    &self.name.get_name()
+  }
   
-  fn get_name(&self) -> &str{&self.name}
+  fn set_name(&mut self, a_name: &str){
+    self.name.set_name(a_name);
+  }
+}
+
+pub struct UniformShaderVulkan {
+  name: UniformName,
+  id: i32 //todo check type
+}
+
+impl UniformShader for UniformShaderVulkan {
+  fn any(&mut self) -> &mut dyn std::any::Any{
+    self
+  }
 }
 
 pub struct RendererVulkan {
@@ -127,8 +144,8 @@ impl Renderer for RendererVulkan {
     Err(RendererError::Unimplemented)
   }
 
-  fn get_uniform(&mut self, a_shader: &mut Box<dyn Program>, a_name: &str) -> Box<dyn Uniform>{
-    Box::new(UniformVulkan{id: 0, name: a_name.to_string()})
+  fn get_uniform(&mut self, a_shader: &mut Box<dyn Program>, a_name: &str) -> Box<dyn UniformShader>{
+    Box::new(UniformShaderVulkan{name: UniformName::new(a_name), id: 0})
   }
 
   //fn set_uniform(&mut self, a_uniform: &Box<dyn Uniform>){}

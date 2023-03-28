@@ -18,7 +18,7 @@ use std::time::Duration;
 use std::fmt;
 use std::fs::File;
 use std::io::prelude::*;
-use std::rc::Rc;
+//use std::rc::Rc;
 use glam::*;
 
 
@@ -85,14 +85,14 @@ impl MainWindow {
     let window_name = "rust-sdl2 demo";
 
     let window = match a_renderer_type {
-      OpenGL => init_window_opengl(&video_subsystem, window_name, width as u32, height as u32),
-      Vulkan => init_window_vulkan(&video_subsystem, window_name, width as u32, height as u32),
+      renderer::RendererType::OpenGL => init_window_opengl(&video_subsystem, window_name, width as u32, height as u32),
+      renderer::RendererType::Vulkan => init_window_vulkan(&video_subsystem, window_name, width as u32, height as u32),
       _ => init_window(&video_subsystem, window_name, width as u32, height as u32)
     };
       
     let window = match window {
       Ok(res) => res,
-      Err(res) => return Err(WindowError::SdlWindowError)
+      Err(_res) => return Err(WindowError::SdlWindowError)
     };
 
     let raw_window_handle = window.raw_window_handle();
@@ -112,7 +112,7 @@ impl MainWindow {
     //window.
 
     //Box<dyn renderer::Renderer>
-    let mut renderer = match init_renderer(a_renderer_type, &video_subsystem, &window){
+    let renderer = match init_renderer(a_renderer_type, &video_subsystem, &window){
       Ok(res) => res,
       Err(res) => return Err(res)
     };
@@ -136,42 +136,42 @@ impl MainWindow {
   pub fn run(&mut self) {
     let mut file_vertex = match File::open("basic.vert"){
       Ok(res) => res,
-      Err(res) => return
+      Err(_res) => return
     };
     let mut source_vertex = String::new();
     match file_vertex.read_to_string(&mut source_vertex){
       Ok(res) => res,
-      Err(res) => return
+      Err(_res) => return
     };
 
     let shader_vertex = match self.renderer.load_shader(renderer::ShaderType::Vertex, source_vertex.as_ref()){
       Ok(res) => res,
-      Err(res) => return
+      Err(_res) => return
     };
 
     let mut file_frag = match File::open("basic.frag"){
       Ok(res) => res,
-      Err(res) => return
+      Err(_res) => return
     };
     let mut source_frag = String::new();
     match file_frag.read_to_string(&mut source_frag){
       Ok(res) => res,
-      Err(res) => return
+      Err(_res) => return
     };
 
     let shader_frag = match self.renderer.load_shader(renderer::ShaderType::Fragment, &mut source_frag){
       Ok(res) => res,
-      Err(res) => return
+      Err(_res) => return
     };
 
-    let mut shader_program = match self.renderer.load_program_vert_frag(shader_vertex, shader_frag){
+    let shader_program = match self.renderer.load_program_vert_frag(shader_vertex, shader_frag){
       Ok(res) => res,
-      Err(res) => return
+      Err(_res) => return
     };
 
     let img = match image::open("image.jpg"){
       Ok(res) => res,
-      Err(res) => return
+      Err(_res) => return
     };
 
     //only need to flip with opengl
@@ -200,6 +200,8 @@ impl MainWindow {
     let material = Box::new(material::MaterialBasic::new(shader_program, 
       self.renderer.gen_sampler(texture.into())));
 
+    //let uniform_mvp = self.renderer.get_uniform(&mut shader_program, "u_mvp");
+
     //material.set_color_texture(&texture);
 
     let mut mesh = self.renderer.gen_mesh(geometry, material);
@@ -217,7 +219,13 @@ impl MainWindow {
 
     let mut event_pump = self.sdl_context.event_pump().unwrap();
     let mut i = 0;
+    let mut r: f32 = 0.0;
     'running: loop {
+      r += 0.01;
+      if r > 1.0{
+        r = 0.0;
+      }
+
       i = (i + 1) % 255;
       //self.canvas.set_draw_color(Color::RGB(i, 64, 255 - i));
       //self.canvas.clear();
@@ -230,6 +238,8 @@ impl MainWindow {
               _ => {}
           }
       }
+      self.renderer.set_clear_color(Vec4::new(r, 0.0, 0.0, 1.0));
+
       // The rest of the game loop goes here...
       self.renderer.clear(renderer::RendererClearType::Color);
 
@@ -248,14 +258,14 @@ fn init_renderer(a_renderer_type: renderer::RendererType, a_video_subsystem: &sd
     renderer::RendererType::OpenGL => {
       Ok(Box::new(match renderer_opengl::RendererOpenGL::new(a_video_subsystem, a_window){
         Ok(res) => res,
-        Err(res) => return Err(WindowError::SdlRendererError)
+        Err(_res) => return Err(WindowError::SdlRendererError)
       }
       ))
     },
     renderer::RendererType::Vulkan => {
       Ok(Box::new( match renderer_vulkan::RendererVulkan::new(){
         Ok(res) => res,
-        Err(res) => return Err(WindowError::SdlRendererError)
+        Err(_res) => return Err(WindowError::SdlRendererError)
       }))
     },
     _ => Err(WindowError::SdlRendererError)

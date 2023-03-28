@@ -61,11 +61,19 @@ pub struct MaterialBasic{
 impl MaterialBasic{
   pub fn new(a_program: Box<dyn Program>, a_sampler: Box<dyn Sampler>) -> Self{
     let mut samplers = std::vec::Vec::new();
+    let mut uniforms = std::vec::Vec::new();
+
+    //let uniform_mvp;
 
     samplers.push(a_sampler);
+    //uniforms.push(uniform_mvp);
 
-    let mut material = MaterialBasic{program: a_program, uniforms: std::vec::Vec::new(), samplers: samplers, mvp: Mat4::IDENTITY};
+    //let uniform_mvp = self.renderer.get_uniform(&mut a_program, "u_mvp");
+
+    let mut material = MaterialBasic{program: a_program, uniforms: uniforms, samplers: samplers, mvp: Mat4::IDENTITY};
     material.samplers[0].set_name("u_color");
+
+
 
     // let mut uniforms = std::vec::Vec::new();
 

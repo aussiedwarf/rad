@@ -8,7 +8,9 @@ edition = "2018"
 
 #"bundled", "static-link", "ttf",
 [dependencies]
+murmur3 = "0.5.2"
 sdl2 = { version = "0.34.3", default-features = false, features = ["static-link", "bundled", "raw-window-handle"] }
+static_assertions = "1.1.0"
 gl = "0.14.0"
 nfd2 = "0.2.3"
 raw-window-handle = "0.3.3"
