@@ -180,7 +180,10 @@ impl Renderer for RendererOpenGL {
     RendererType::OpenGL
   }
 
-  fn begin_frame(&mut self, a_clear: RendererClearType){}
+  fn begin_frame(&mut self, a_clear: RendererClearType){
+    self.clear(a_clear);
+  }
+
   fn end_frame(&mut self){}
 
   //clear immediatly
@@ -570,7 +573,7 @@ impl Renderer for RendererOpenGL {
     }
   }
 
-  fn draw_mesh(&mut self, a_camera: &Camera, a_mesh: &mut Box<Mesh>){
+  fn draw_mesh(&mut self, _camera: &Camera, a_mesh: &mut Box<Mesh>){
     let geometry = match a_mesh.geometry.any().downcast_ref::<GeometryOpenGL>() {
       Some(res) => res,
       None => panic!("Invalid vertex")

@@ -23,6 +23,7 @@ use std::io::prelude::*;
 use glam::*;
 
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum WindowError {
   SdlInitError,
@@ -44,6 +45,7 @@ impl fmt::Display for WindowError {
   }
 }
 
+#[allow(dead_code)]
 pub struct MainWindow{
   active: bool,
   width: i32,
