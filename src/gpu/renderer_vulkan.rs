@@ -2,8 +2,10 @@
 use glam::*;
 
 use crate::gpu::renderer::*;
+use crate::gpu::renderer_types::*;
 use crate::gpu::material::*;
 use crate::gpu::camera::*;
+use crate::gpu::uniforms::*;
 use std::rc::Rc;
 
 pub struct SamplerVulkan{

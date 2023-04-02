@@ -14,7 +14,7 @@ mod app;
 
 fn main() {
 
-  let mut foo = match app::main_window::MainWindow::init(gpu::renderer::RendererType::OpenGL){
+  let mut foo = match app::main_window::MainWindow::init(gpu::renderer_types::RendererType::OpenGL){
     Ok(res) => res,
     Err(_res) => {
       eprintln!("Error");

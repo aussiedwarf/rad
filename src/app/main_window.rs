@@ -6,6 +6,7 @@ extern crate libc;
 
 use crate::gpu::camera::*;
 use crate::gpu::renderer;
+use crate::gpu::renderer_types;
 use crate::gpu::renderer_opengl;
 use crate::gpu::renderer_vulkan;
 use crate::gpu::material;
@@ -58,7 +59,7 @@ pub struct MainWindow{
 
 
 impl MainWindow {
-  pub fn init(a_renderer_type: renderer::RendererType) -> Result<MainWindow, WindowError>  {
+  pub fn init(a_renderer_type: renderer_types::RendererType) -> Result<MainWindow, WindowError>  {
     let width: i32 = 800;
     let height: i32 = 600;
     let sdl_context = match sdl2::init(){
@@ -85,8 +86,8 @@ impl MainWindow {
     let window_name = "rust-sdl2 demo";
 
     let window = match a_renderer_type {
-      renderer::RendererType::OpenGL => init_window_opengl(&video_subsystem, window_name, width as u32, height as u32),
-      renderer::RendererType::Vulkan => init_window_vulkan(&video_subsystem, window_name, width as u32, height as u32),
+      renderer_types::RendererType::OpenGL => init_window_opengl(&video_subsystem, window_name, width as u32, height as u32),
+      renderer_types::RendererType::Vulkan => init_window_vulkan(&video_subsystem, window_name, width as u32, height as u32),
       _ => init_window(&video_subsystem, window_name, width as u32, height as u32)
     };
       
@@ -144,7 +145,7 @@ impl MainWindow {
       Err(_res) => return
     };
 
-    let shader_vertex = match self.renderer.load_shader(renderer::ShaderType::Vertex, source_vertex.as_ref()){
+    let shader_vertex = match self.renderer.load_shader(renderer_types::ShaderType::Vertex, source_vertex.as_ref()){
       Ok(res) => res,
       Err(_res) => return
     };
@@ -159,7 +160,7 @@ impl MainWindow {
       Err(_res) => return
     };
 
-    let shader_frag = match self.renderer.load_shader(renderer::ShaderType::Fragment, &mut source_frag){
+    let shader_frag = match self.renderer.load_shader(renderer_types::ShaderType::Fragment, &mut source_frag){
       Ok(res) => res,
       Err(_res) => return
     };
@@ -241,7 +242,7 @@ impl MainWindow {
       self.renderer.set_clear_color(Vec4::new(r, 0.0, 0.0, 1.0));
 
       // The rest of the game loop goes here...
-      self.renderer.clear(renderer::RendererClearType::Color);
+      self.renderer.clear(renderer_types::RendererClearType::Color);
 
       self.renderer.draw_mesh(&camera, &mut mesh);
       
@@ -252,17 +253,17 @@ impl MainWindow {
   }
 }
 
-fn init_renderer(a_renderer_type: renderer::RendererType, a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> 
+fn init_renderer(a_renderer_type: renderer_types::RendererType, a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> 
   Result<Box<dyn renderer::Renderer>, WindowError > {
   match a_renderer_type {
-    renderer::RendererType::OpenGL => {
+    renderer_types::RendererType::OpenGL => {
       Ok(Box::new(match renderer_opengl::RendererOpenGL::new(a_video_subsystem, a_window){
         Ok(res) => res,
         Err(_res) => return Err(WindowError::SdlRendererError)
       }
       ))
     },
-    renderer::RendererType::Vulkan => {
+    renderer_types::RendererType::Vulkan => {
       Ok(Box::new( match renderer_vulkan::RendererVulkan::new(){
         Ok(res) => res,
         Err(_res) => return Err(WindowError::SdlRendererError)

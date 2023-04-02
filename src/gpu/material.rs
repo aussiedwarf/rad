@@ -1,5 +1,6 @@
 
 use crate::gpu::renderer::*;
+use crate::gpu::uniforms::*;
 
 use glam::*;
 
