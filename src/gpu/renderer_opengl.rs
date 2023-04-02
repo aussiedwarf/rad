@@ -515,12 +515,13 @@ impl Renderer for RendererOpenGL {
       None => panic!("Invalid texture")
     };
 
-    let bgra_image = a_image.to_bgra8();
+    let mut bgra =  image::DynamicImage::ImageRgba8(a_image.to_rgba8());
+    self.to_bgra8(&mut bgra);
 
     unsafe{
       gl::BindTexture(gl::TEXTURE_2D, texture.id);
-      gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA as i32, bgra_image.width() as i32, bgra_image.height() as i32, 0, 
-        gl::BGRA, gl::UNSIGNED_BYTE, bgra_image.as_raw().as_ptr() as *const std::os::raw::c_void);
+      gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA as i32, bgra.width() as i32, bgra.height() as i32, 0, 
+        gl::BGRA, gl::UNSIGNED_BYTE, bgra.as_bytes().as_ptr() as *const std::os::raw::c_void);
 
       gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
       gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
@@ -713,6 +714,21 @@ impl RendererOpenGL {
       gl::ActiveTexture(gl::TEXTURE0 + 0);
       gl::BindTexture(gl::TEXTURE_2D,  texture.id);
     }
+  }
+
+  fn to_bgra8(&self, a_image: &mut image::DynamicImage){
+    let mut pixels_it = match a_image.as_mut_rgba8(){
+      Some(res) => res.pixels_mut(),
+      None => panic!("invalid image")
+    };
+
+    for pix in &mut pixels_it{
+      let val = pix.0[2];
+      pix.0[2] = pix.0[0];
+      pix.0[0] = val;
+    }
+
+
   }
 }
 

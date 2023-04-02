@@ -11,7 +11,7 @@ use crate::gpu::renderer_opengl;
 use crate::gpu::renderer_vulkan;
 use crate::gpu::material;
 
-use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
+//use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -51,7 +51,7 @@ pub struct MainWindow{
   sdl_context: sdl2::Sdl,
   video_subsystem: sdl2::VideoSubsystem,
   window: sdl2::video::Window,
-  raw_window_handle: RawWindowHandle,
+  //raw_window_handle: RawWindowHandle,
   renderer: Box<dyn renderer::Renderer>
   //canvas: sdl2::render::WindowCanvas
 }
@@ -96,7 +96,7 @@ impl MainWindow {
       Err(_res) => return Err(WindowError::SdlWindowError)
     };
 
-    let raw_window_handle = window.raw_window_handle();
+    //let raw_window_handle = window.raw_window_handle();
 
     
     #[cfg(target_os = "windows")]
@@ -125,7 +125,7 @@ impl MainWindow {
       sdl_context: sdl_context,
       video_subsystem: video_subsystem,
       window: window,
-      raw_window_handle: raw_window_handle,
+      //raw_window_handle: raw_window_handle,
       renderer: renderer,
       //canvas: canvas
     };

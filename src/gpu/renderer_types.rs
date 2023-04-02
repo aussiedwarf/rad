@@ -145,14 +145,13 @@ pub enum RendererClearType{
 */
 
 bitflags! {
-  //#[allow(non_upper_case_globals)]
-  #[allow(dead_code, non_upper_case_globals)]
+  #[allow(dead_code)]
+  #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
   pub struct RendererClearType: u32 {
     const NONE = 0b00000000;
     const COLOR = 0b00000001;
     const DEPTH = 0b00000010;
     const STENCIL = 0b00000100;
-    //const ABC = Self::A.bits | Self::B.bits | Self::C.bits;
   }
 }
 
