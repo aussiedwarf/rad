@@ -1,5 +1,6 @@
 use glam::*;
 
+#[allow(dead_code)]
 pub struct Camera{
   //matrix_camera: Mat4,
   matrix_view: Mat4,
@@ -16,6 +17,7 @@ pub struct Camera{
   far: f32,
 }
 
+#[allow(dead_code)]
 impl Camera{
   pub fn update(&mut self){
 

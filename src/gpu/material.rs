@@ -51,6 +51,7 @@ impl Material for MaterialBasic {
 
 }
 
+#[allow(dead_code)]
 pub struct MaterialBasic{
   program: Box<dyn Program>,
   uniforms: std::vec::Vec<Box<dyn Uniform>>,
@@ -59,6 +60,7 @@ pub struct MaterialBasic{
   mvp: Mat4,
 }
 
+#[allow(dead_code)]
 impl MaterialBasic{
   pub fn new(a_program: Box<dyn Program>, a_sampler: Box<dyn Sampler>) -> Self{
     let mut samplers = std::vec::Vec::new();
@@ -76,7 +78,7 @@ impl MaterialBasic{
     material
   }
 
-  pub fn set_color_texture(&self, a_texture: &Box<dyn Texture>){
+  pub fn set_color_texture(&self, _texture: &Box<dyn Texture>){
 
   }
 }

@@ -24,6 +24,7 @@ pub struct UniformName{
   hash: UniformHash,
 }
 
+#[allow(dead_code)]
 impl UniformName{
   pub fn new(a_name: &str) -> UniformName{
     UniformName{name: String::from(a_name), hash: UniformName::calculate_hash(a_name)}

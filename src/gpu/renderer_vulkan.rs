@@ -22,6 +22,7 @@ impl Sampler for SamplerVulkan {
   }
 }
 
+#[allow(dead_code)]
 pub struct VerticesVulkan {
   id: i32
 }
@@ -32,6 +33,7 @@ impl Vertices for VerticesVulkan {
   }
 }
 
+#[allow(dead_code)]
 pub struct GeometryVulkan {
   id: i32
 }
@@ -42,6 +44,7 @@ impl Geometry for GeometryVulkan {
   }
 }
 
+#[allow(dead_code)]
 pub struct TextureVulkan {
   id: i32
 }
@@ -52,6 +55,7 @@ impl Texture for TextureVulkan {
   }
 }
 
+#[allow(dead_code)]
 pub struct UniformVulkan {
   name: UniformName,
   data: UniformData,
@@ -78,6 +82,7 @@ impl Uniform for UniformVulkan {
   }
 }
 
+#[allow(dead_code)]
 pub struct UniformShaderVulkan {
   name: UniformName,
   id: i32 //todo check type
@@ -97,7 +102,7 @@ pub struct RendererVulkan {
   clear_stencil: i32
 }
 
-
+#[allow(dead_code)]
 impl Renderer for RendererVulkan {
   fn name(&self) -> String{
     String::from("Vulkan")
@@ -107,17 +112,17 @@ impl Renderer for RendererVulkan {
     RendererType::Vulkan
   }
 
-  fn begin_frame(&mut self, a_clear: RendererClearType){}
+  fn begin_frame(&mut self, _clear: RendererClearType){}
   fn end_frame(&mut self){}
 
   //clear immediatly
   //= RendererClearColor | RendererClearDepth | RendererClearStencil
-  fn clear(&mut self, a_clear: RendererClearType){}
+  fn clear(&mut self, _clear: RendererClearType){}
 
   //Get and set clear values may be called before BeginFrame
-  fn set_clear_color(&mut self, a_color: Vec4){}
-  fn set_clear_depth(&mut self, a_depth: f32){}
-  fn set_clear_stencil(&mut self, a_stencil: i32){}
+  fn set_clear_color(&mut self, _color: Vec4){}
+  fn set_clear_depth(&mut self, _depth: f32){}
+  fn set_clear_stencil(&mut self, _stencil: i32){}
   fn get_clear_color(&self) -> Vec4{
     self.clear_color
   }
@@ -129,7 +134,7 @@ impl Renderer for RendererVulkan {
     self.clear_stencil
   }
 
-  fn set_viewport(&mut self, a_pos: IVec2, a_size: IVec2){}
+  fn set_viewport(&mut self, _pos: IVec2, _size: IVec2){}
 
   fn get_viewport_pos(&self) -> IVec2{
     IVec2::new(0,0)
@@ -138,15 +143,15 @@ impl Renderer for RendererVulkan {
     IVec2::new(0,0)
   }
 
-  fn load_shader(&mut self, a_shader_type: ShaderType, a_source: &str) -> Result<Box<dyn Shader>, RendererError>{
+  fn load_shader(&mut self, _shader_type: ShaderType, _source: &str) -> Result<Box<dyn Shader>, RendererError>{
     Err(RendererError::Unimplemented)
   }
 
-  fn load_program_vert_frag(&mut self, a_shader_vert: Box<dyn Shader>, a_shader_frag: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>{
+  fn load_program_vert_frag(&mut self, _shader_vert: Box<dyn Shader>, _shader_frag: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>{
     Err(RendererError::Unimplemented)
   }
 
-  fn get_uniform(&mut self, a_shader: &mut Box<dyn Program>, a_name: &str) -> Box<dyn UniformShader>{
+  fn get_uniform(&mut self, _shader: &mut Box<dyn Program>, a_name: &str) -> Box<dyn UniformShader>{
     Box::new(UniformShaderVulkan{name: UniformName::new(a_name), id: 0})
   }
 
@@ -154,11 +159,11 @@ impl Renderer for RendererVulkan {
 
   //fn set_texture(&mut self, a_texture: &Box<dyn Texture>){}
 
-  fn gen_buffer_vertex(&mut self, a_verts: &std::vec::Vec<f32>) -> Box<dyn Vertices>{
+  fn gen_buffer_vertex(&mut self, _verts: &std::vec::Vec<f32>) -> Box<dyn Vertices>{
     Box::new(VerticesVulkan{id: 0})
   }
 
-  fn gen_geometry(&mut self, a_buffer: &Box<dyn Vertices>) -> Box<dyn Geometry>{
+  fn gen_geometry(&mut self, _buffer: &Box<dyn Vertices>) -> Box<dyn Geometry>{
     Box::new(GeometryVulkan{id: 0})
   }
 
@@ -174,17 +179,17 @@ impl Renderer for RendererVulkan {
     Box::new(TextureVulkan{id: 0})
   }
 
-  fn gen_sampler(&mut self, a_texture: Rc<dyn Texture>) -> Box<dyn Sampler>{
+  fn gen_sampler(&mut self, _texture: Rc<dyn Texture>) -> Box<dyn Sampler>{
     Box::new(SamplerVulkan{name: String::from("")})
   }
 
-  fn load_texture(&mut self, a_image: &image::DynamicImage, a_texture: &mut Box<dyn Texture>){
+  fn load_texture(&mut self, _image: &image::DynamicImage, _texture: &mut Box<dyn Texture>){
   }
 
-  fn use_program(&mut self, a_program: &Box<dyn Program>){}
+  fn use_program(&mut self, _program: &Box<dyn Program>){}
 
-  fn draw_geometry(&mut self, a_geometry: &Box<dyn Geometry>){}
-  fn draw_mesh(&mut self, a_camera: &Camera, a_geometry: &mut Box<Mesh>){}
+  fn draw_geometry(&mut self, _geometry: &Box<dyn Geometry>){}
+  fn draw_mesh(&mut self, _camera: &Camera, _geometry: &mut Box<Mesh>){}
 }
 
 impl RendererVulkan{

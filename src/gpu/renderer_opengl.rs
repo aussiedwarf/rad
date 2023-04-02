@@ -108,6 +108,7 @@ pub struct UniformOpenGL {
   modified: bool,
 }
 
+#[allow(dead_code)]
 impl UniformOpenGL {
   pub fn new<T: 'static + GetType>(a_name: &str, a_data: T, a_id: gl::types::GLint) -> UniformOpenGL{
     UniformOpenGL{
@@ -186,15 +187,15 @@ impl Renderer for RendererOpenGL {
   fn clear(&mut self, a_clear: RendererClearType){
     let mut bits: gl::types::GLenum = 0;
 
-    if (a_clear & RendererClearType::Color) == RendererClearType::Color {
+    if (a_clear & RendererClearType::COLOR) == RendererClearType::COLOR {
       bits |= gl::COLOR_BUFFER_BIT;
     }
 
-    if (a_clear & RendererClearType::Depth) == RendererClearType::Depth {
+    if (a_clear & RendererClearType::DEPTH) == RendererClearType::DEPTH {
       bits |= gl::DEPTH_BUFFER_BIT;
     }
 
-    if (a_clear & RendererClearType::Stencil) == RendererClearType::Stencil {
+    if (a_clear & RendererClearType::STENCIL) == RendererClearType::STENCIL {
       bits |= gl::STENCIL_BUFFER_BIT;
     }
 
@@ -613,7 +614,7 @@ impl RendererOpenGL {
       Err(_res) => return Err(RendererError::Error)
     };
 
-    let gl = gl::load_with(|s| a_video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
+    gl::load_with(|s| a_video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
 
     Ok(Self {
       gl_context: gl_context,
@@ -682,7 +683,7 @@ impl RendererOpenGL {
                 gl::UniformMatrix4fv(uniform.id, 1, 0, &data.to_cols_array()[0] as *const f32);
               }
             }
-            _ => panic!("Invalid number of components")
+            //_ => panic!("Invalid number of components")
           };
         },
         _ => panic!("Unimplemented type")

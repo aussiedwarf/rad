@@ -64,12 +64,12 @@ impl MainWindow {
     let height: i32 = 600;
     let sdl_context = match sdl2::init(){
       Ok(res) => res,
-      Err(res) => return Err(WindowError::SdlInitError)
+      Err(_res) => return Err(WindowError::SdlInitError)
     };
 
     let video_subsystem = match sdl_context.video(){
       Ok(res) => res,
-      Err(res) => return Err(WindowError::SdlInitError)
+      Err(_res) => return Err(WindowError::SdlInitError)
     };
 
     /*
@@ -242,7 +242,7 @@ impl MainWindow {
       self.renderer.set_clear_color(Vec4::new(r, 0.0, 0.0, 1.0));
 
       // The rest of the game loop goes here...
-      self.renderer.clear(renderer_types::RendererClearType::Color);
+      self.renderer.clear(renderer_types::RendererClearType::COLOR);
 
       self.renderer.draw_mesh(&camera, &mut mesh);
       
