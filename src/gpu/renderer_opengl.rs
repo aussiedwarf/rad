@@ -34,6 +34,22 @@ impl Program for ProgramOpenGL {
   fn any(&self) -> &dyn std::any::Any{
     self
   }
+
+  fn get_uniform(&self, a_name: &str, a_data: UniformData) -> Box<dyn Uniform>{
+    let c_str = match CString::new(a_name){
+      Ok(res) => res,
+      Err(_res) => panic!("Invalid text cast")
+    };
+
+    let location = unsafe{gl::GetUniformLocation(self.id, c_str.as_ptr())};
+
+    Box::new(UniformOpenGL{
+      name: UniformName::new(a_name),
+      data: a_data,
+      id: location,
+      modified: true
+    })
+  }
 }
 
 pub struct ShaderOpenGL {
@@ -114,7 +130,6 @@ impl Uniform for UniformOpenGL {
   fn get_f32(&self) -> f32{
     self.data.get::<f32>()
   }
-
   
   fn get_name(&self) -> &str{
     &self.name.get_name()
@@ -125,6 +140,7 @@ impl Uniform for UniformOpenGL {
   }
 }
 
+#[allow(dead_code)]
 pub struct UniformShaderOpenGL {
   name: UniformName,
   id: gl::types::GLint
@@ -437,7 +453,7 @@ impl Renderer for RendererOpenGL {
       gl::BindVertexArray(vao);
       gl::BindBuffer(gl::ARRAY_BUFFER, buffer.id);
 
-      gl::EnableVertexAttribArray(0); // this is "layout (location = 0)" in vertex shader
+      gl::EnableVertexAttribArray(0); // todo this is "layout (location = 0)" in vertex shader
       gl::VertexAttribPointer(
         0, // index of the generic vertex attribute ("layout (location = 0)")
         2, // the number of components per generic vertex attribute
@@ -447,7 +463,7 @@ impl Renderer for RendererOpenGL {
         std::ptr::null() // offset of the first component in bytes
       );
       
-      gl::EnableVertexAttribArray(1); // this is "layout (location = 0)" in vertex shader
+      gl::EnableVertexAttribArray(1); // todo this is "layout (location = 0)" in vertex shader
       gl::VertexAttribPointer(
         1, // index of the generic vertex attribute ("layout (location = 0)")
         2, // the number of components per generic vertex attribute
@@ -592,7 +608,7 @@ impl RendererOpenGL {
   pub fn new(a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> Result<Self, RendererError>{
     let gl_context = match init_gl_context(&a_video_subsystem, &a_window) {
       Ok(res) => res,
-      Err(res) => return Err(RendererError::Error)
+      Err(_res) => return Err(RendererError::Error)
     };
 
     let gl = gl::load_with(|s| a_video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
@@ -626,7 +642,6 @@ impl RendererOpenGL {
                 gl::Uniform1fv(uniform.id, 1, &data as *const f32);
               }
             },
-            /*
             ContainerType::Vec2 => {
               let data = uniform.data.get::<Vec2>();
               unsafe{
@@ -665,62 +680,9 @@ impl RendererOpenGL {
                 gl::UniformMatrix4fv(uniform.id, 1, 0, &data.to_cols_array()[0] as *const f32);
               }
             }
-            */
             _ => panic!("Invalid number of components")
           };
         },
-        /*
-        ElementType::Int32 => {
-          match uniform.data.info.container_type{
-            ContainerType::Single => {
-              unsafe{
-                gl::Uniform1iv(uniform.id, 1, uniform.data.as_ptr() as *const i32);
-              }
-            },
-            ContainerType::Vec2 => {
-              unsafe{
-                gl::Uniform2iv(uniform.id, 1, uniform.data.as_ptr() as *const i32);
-              }
-            },
-            ContainerType::Vec3 => {
-              unsafe{
-                gl::Uniform3iv(uniform.id, 1, uniform.data.as_ptr() as *const i32);
-              }
-            },
-            ContainerType::Vec4 => {
-              unsafe{
-                gl::Uniform4iv(uniform.id, 1, uniform.data.as_ptr() as *const i32);
-              }
-            },
-            _ => panic!("Invalid number of components")
-          }
-        },
-        ElementType::Uint32 => {
-          match uniform.data.info.container_type{
-            ContainerType::Single => {
-              unsafe{
-                gl::Uniform1uiv(uniform.id, 1, uniform.data.as_ptr() as *const u32);
-              }
-            },
-            ContainerType::Vec2 => {
-              unsafe{
-                gl::Uniform2uiv(uniform.id, 1, uniform.data.as_ptr() as *const u32);
-              }
-            },
-            ContainerType::Vec3 => {
-              unsafe{
-                gl::Uniform3uiv(uniform.id, 1, uniform.data.as_ptr() as *const u32);
-              }
-            },
-            ContainerType::Vec4 => {
-              unsafe{
-                gl::Uniform4uiv(uniform.id, 1, uniform.data.as_ptr() as *const u32);
-              }
-            },
-            _ => panic!("Invalid number of components")
-          }
-        },
-        */
         _ => panic!("Unimplemented type")
         
       };
@@ -804,7 +766,7 @@ fn init_gl_context(a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::vi
       Ok(res) => {
         return Ok(res);
       },
-      Err(res) => {
+      Err(_res) => {
         //try lower version of gl
         if gl_version_minor > 0 {
           gl_version_minor -= 1;

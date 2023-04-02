@@ -115,7 +115,7 @@ impl GetType for Vec4{
     ContainerType::Vec4
   }
 }
-/*
+
 impl GetType for Mat2{
   fn get_element_type(&self) -> ElementType{
     ElementType::Float32
@@ -142,7 +142,7 @@ impl GetType for Mat4{
     ContainerType::Mat4x4
   }
 }
-*/
+
 
 /*
 #[derive(Copy, Clone)]
@@ -181,6 +181,8 @@ impl fmt::Display for RendererError {
 
 pub trait Program{
   fn any(&self) -> &dyn std::any::Any;
+
+  fn get_uniform(&self, a_name: &str, a_data: UniformData) -> Box<dyn Uniform>;
 }
 
 
@@ -357,6 +359,43 @@ pub trait UniformShader{
   fn any(&mut self) -> &mut dyn std::any::Any;
 }
 
+pub struct UniformMaterial{
+  name: UniformName,
+  data: UniformData,
+}
+
+#[allow(dead_code)]
+impl UniformMaterial {
+  pub fn new<T: 'static + GetType>(a_name: &str, a_data: T) -> UniformMaterial{
+    UniformMaterial{
+      name: UniformName::new(a_name), 
+      data: UniformData::new::<T>(a_data)
+    }
+  }
+}
+
+impl Uniform for UniformMaterial {
+  fn any(&mut self) -> &mut dyn std::any::Any{
+    self
+  }
+
+  fn set_f32(&mut self, a: f32){
+    self.data.set::<f32>(a);
+  }
+
+  fn get_f32(&self) -> f32{
+    self.data.get::<f32>()
+  }
+  
+  fn get_name(&self) -> &str{
+    &self.name.get_name()
+  }
+  
+  fn set_name(&mut self, a_name: &str){
+    self.name.set_name(a_name);
+  }
+}
+
 pub trait Uniform{
   fn any(&mut self) -> &mut dyn std::any::Any;
 
@@ -368,6 +407,8 @@ pub trait Uniform{
   fn set_name(&mut self, a_name: &str);
 
 }
+
+
 
 pub trait Sampler{
   fn any(&self) -> &dyn std::any::Any;
