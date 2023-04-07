@@ -3,5 +3,5 @@ pub mod material;
 pub mod renderer;
 pub mod uniforms;
 pub mod renderer_types;
-pub mod renderer_opengl;
-pub mod renderer_vulkan;
+pub mod opengl;
+pub mod vulkan;

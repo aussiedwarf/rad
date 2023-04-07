@@ -2,8 +2,8 @@
 extern crate sdl2;
 use crate::gpu::renderer;
 use crate::gpu::renderer_types;
-use crate::gpu::renderer_opengl;
-use crate::gpu::renderer_vulkan;
+use crate::gpu::opengl::renderer_opengl;
+use crate::gpu::vulkan::renderer_vulkan;
 use std::fmt;
 use std::sync::Mutex;
 use std::sync::Arc;
