@@ -5,6 +5,8 @@ use crate::gpu::renderer_types;
 use crate::gpu::renderer_opengl;
 use crate::gpu::renderer_vulkan;
 use std::fmt;
+use std::sync::Mutex;
+use std::sync::Arc;
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
@@ -28,16 +30,33 @@ impl fmt::Display for WindowError {
   }
 }
 
+pub struct UnsafeSend<T>{
+  pub inner: T,
+}
+
+unsafe impl<T> Send for UnsafeSend<T> { }
+
+#[allow(dead_code)]
+impl<T> UnsafeSend<T> {
+  pub unsafe fn new(t: T) -> Self {
+      Self{ inner: t }
+  }
+  pub fn into_inner(self) -> T {
+      self.inner
+  }
+}
+
 #[allow(dead_code)]
 pub struct Window{
   active: bool,
   pub width: u32,
   pub height: u32,
-  pub sdl_context: sdl2::Sdl,
-  pub video_subsystem: sdl2::VideoSubsystem,
-  pub window: sdl2::video::Window,
+  pub sdl_context: Arc<Mutex<UnsafeSend<sdl2::Sdl>>>,
+  pub video_subsystem: Arc<Mutex<UnsafeSend<sdl2::VideoSubsystem>>>,
+  pub window: Arc<Mutex<UnsafeSend<sdl2::video::Window>>>,
   //raw_window_handle: RawWindowHandle,
-  pub renderer: Box<dyn renderer::Renderer>
+  //pub renderer: Box<dyn renderer::Renderer>,
+  pub renderer_type: renderer_types::RendererType
   //canvas: sdl2::render::WindowCanvas
 }
 
@@ -90,30 +109,28 @@ impl Window {
     ))]
     println!("Linux");
     
-    //window.
-
-    //Box<dyn renderer::Renderer>
-    let renderer = match Window::init_renderer(a_renderer_type, &video_subsystem, &window){
-      Ok(res) => res,
-      Err(res) => return Err(res)
-    };
+    // let renderer = match Window::init_renderer(a_renderer_type, &video_subsystem, &window){
+    //   Ok(res) => res,
+    //   Err(res) => return Err(res)
+    // };
 
     let result = Window {
       active: false,
       width: a_width,
       height: a_height,
-      sdl_context: sdl_context,
-      video_subsystem: video_subsystem,
-      window: window,
+      sdl_context: Arc::new(Mutex::new(unsafe{UnsafeSend::new(sdl_context)})),
+      video_subsystem: Arc::new(Mutex::new(unsafe{UnsafeSend::new(video_subsystem)})),
+      window: Arc::new(Mutex::new(unsafe{UnsafeSend::new(window)})),
       //raw_window_handle: raw_window_handle,
-      renderer: renderer,
+      //renderer: renderer,
       //canvas: canvas
+      renderer_type: a_renderer_type
     };
 
     Ok(result)
   } 
 
-  fn init_renderer(a_renderer_type: renderer_types::RendererType, a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> 
+  pub fn init_renderer(a_renderer_type: renderer_types::RendererType, a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> 
   Result<Box<dyn renderer::Renderer>, WindowError > {
   match a_renderer_type {
     renderer_types::RendererType::OpenGL => {
