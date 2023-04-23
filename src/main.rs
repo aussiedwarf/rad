@@ -15,7 +15,7 @@ mod gui;
 
 fn main() {
 
-  let mut main_window = match app::main_window::MainWindow::new(gpu::renderer_types::RendererType::OpenGL){
+  let mut main_window = match app::main_window::MainWindow::new(gpu::renderer_types::RendererType::DirectX){
     Ok(res) => res,
     Err(_res) => {
       eprintln!("Error");
