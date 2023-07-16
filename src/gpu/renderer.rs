@@ -86,6 +86,8 @@ pub trait Renderer {
 
   fn gen_mesh(&mut self, a_geometry: Box<dyn Geometry>, a_material: Box<dyn Material>) -> Box<Mesh>;
 
+  //fn gen_instances(&mut self, Box<Mesh>, u32 a_num_instances) -> Box<Instances>;  //should return instances object, or vector of instances?
+
   fn gen_buffer_texture(&mut self) -> Box<dyn Texture>;
 
   fn gen_sampler(&mut self, a_texture: Rc<dyn Texture>) -> Box<dyn Sampler>;
@@ -96,4 +98,8 @@ pub trait Renderer {
 
   fn draw_geometry(&mut self, a_geometry: &Box<dyn Geometry>);
   fn draw_mesh(&mut self, a_camera: &Camera, a_mesh: &mut Box<Mesh>);
+
+  //fn gen_render_target
+  //fn set_render_target
+  //fn clear_render_target
 }

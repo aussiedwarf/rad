@@ -9,6 +9,7 @@ use crate::gpu::directx::renderer_common::*;
 
 use std::result::Result;
 use std::rc::Rc;
+use std::vec::Vec;
 
 use glam::*;
 
@@ -274,6 +275,8 @@ impl RendererDirectX12 {
     let hwnd_ptr = inner_info.as_ptr() as *const windows::Win32::Foundation::HWND;
     let hwnd = unsafe{std::ptr::read_unaligned(hwnd_ptr)};
 
+    let frame_buffer_count = 2;
+
     let swap_chain_desc = DXGI_SWAP_CHAIN_DESC {
       BufferDesc: Common::DXGI_MODE_DESC{
         Width: a_window.size().0,
@@ -293,9 +296,9 @@ impl RendererDirectX12 {
         Quality: 0,
       },
       BufferUsage: DXGI_USAGE_RENDER_TARGET_OUTPUT,
-      BufferCount: 2,   //double buffering
+      BufferCount: frame_buffer_count,
       OutputWindow: hwnd,
-      Windowed: true.into(),  //todo
+      Windowed: true.into(),  // TODO 
       SwapEffect: DXGI_SWAP_EFFECT_FLIP_DISCARD,
       Flags: 0,
     };
@@ -314,10 +317,6 @@ impl RendererDirectX12 {
 
     let mut swap_chain: Option<IDXGISwapChain> = None;
     let result_swap_chain =  unsafe{factory.CreateSwapChain(&queue, &swap_chain_desc, &mut swap_chain)};
-
-    //let swap_chain3: IDXGISwapChain3 = swap_chain.unwrap().cast()?;
-
-    
 
     if result_swap_chain.is_err() {
       match result_swap_chain{
@@ -343,6 +342,91 @@ impl RendererDirectX12 {
       Ok(res) => res,
       Err(_res) => return Err(RendererError::Error)
     };
+
+    // Initialize the render target view heap description for the two back buffers.
+    let render_target_view_heap_desc = D3D12_DESCRIPTOR_HEAP_DESC{
+      Type: D3D12_DESCRIPTOR_HEAP_TYPE_RTV,
+      NumDescriptors: 2,
+      Flags: D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
+      NodeMask: 0
+    };
+
+    // Create the render target view heap for the back buffers.
+    let description_heap = match unsafe { device.CreateDescriptorHeap::<ID3D12DescriptorHeap>(&render_target_view_heap_desc)}{
+      Ok(res) => res,
+      Err(_res) => return Err(RendererError::Error)
+    };
+
+    // Get a handle to the starting memory location in the render target view heap to identify where the render target views will be located for the two back buffers.
+    let mut render_target_view_handle: D3D12_CPU_DESCRIPTOR_HANDLE = unsafe { description_heap.GetCPUDescriptorHandleForHeapStart()};
+
+    // Get the size of the memory location for the render target view descriptors.
+    let render_target_view_descriptor_size = unsafe {device.GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV)};
+
+    let mut back_buffers = Vec::new();
+
+    for i in 0..frame_buffer_count{
+      // Get a pointer to the first back buffer from the swap chain.
+      let back_buffer = match unsafe {swap_chain3.GetBuffer::<ID3D12Resource>(i)}{
+        Ok(res) => res,
+        Err(_res) => return Err(RendererError::Error)
+      };
+
+      // Create a render target view for the first back buffer.
+      unsafe{device.CreateRenderTargetView(&back_buffer, None, render_target_view_handle)};
+
+      // Increment the view handle to the next descriptor location in the render target view heap.
+      render_target_view_handle.ptr += render_target_view_descriptor_size as usize;
+
+      back_buffers.push(back_buffer);
+    }
+
+    let buffer_index = unsafe{ swap_chain3.GetCurrentBackBufferIndex() };
+
+    let command_allocator = match unsafe{ device.CreateCommandAllocator::<ID3D12CommandAllocator>(D3D12_COMMAND_LIST_TYPE_DIRECT)}{
+      Ok(res) => res,
+      Err(_res) => return Err(RendererError::Error)
+    };
+
+    /*
+    let pipeline_state_description = D3D12_GRAPHICS_PIPELINE_STATE_DESC::default(); 
+
+    let pipeline_initial_state = match unsafe{ device.CreateGraphicsPipelineState::<ID3D12PipelineState>(&pipeline_state_description)}{
+      Ok(res) => res,
+      Err(_res) => return Err(RendererError::Error)
+    };
+    */
+
+
+    // Create a basic command list.
+    let command_list: ID3D12GraphicsCommandList = match unsafe {device.CreateCommandList //::<ID3D12CommandAllocator,ID3D12PipelineState,ID3D12GraphicsCommandList>
+      (0, D3D12_COMMAND_LIST_TYPE_DIRECT, &command_allocator, None)}{
+      Ok(res) => res,
+      Err(_res) => return Err(RendererError::Error)
+    };
+
+    // Initially we need to close the command list during initialization as it is created in a recording state.
+    let result = unsafe {command_list.Close()};
+    if result.is_err(){
+      return Err(RendererError::Error)
+    }
+
+    // Create a fence for GPU synchronization.
+    let fence: ID3D12Fence = match unsafe {device.CreateFence(0, D3D12_FENCE_FLAG_NONE)}{
+      Ok(res) => res,
+      Err(_res) => return Err(RendererError::Error)
+    };
+
+    // Create an event object for the fence.
+    // m_fenceEvent = CreateEventEx(NULL, FALSE, FALSE, EVENT_ALL_ACCESS);
+    // if (m_fenceEvent == NULL)
+    // {
+    //   return false;
+    // }
+
+    // Initialize the starting fence value. 
+    let fence_value = 1u64;
+
 
     Ok(Self {
       device: device,
@@ -371,4 +455,5 @@ impl RendererDirectX12 {
 
     Ok(device.unwrap())
   }
+
 }

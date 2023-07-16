@@ -1,5 +1,5 @@
 [package]
-name = "painter"
+name = "rad"
 version = "0.1.0"
 authors = ["Eden Harris <aussiedwarf@gmail.com>"]
 edition = "2021"
