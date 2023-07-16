@@ -1,6 +1,7 @@
 
 extern crate glam;
 
+use bitflags::bitflags;
 use glam::*;
 use std::fmt;
 
