@@ -13,11 +13,17 @@ use std::vec::Vec;
 
 use glam::*;
 
+#[cfg(windows)]
 use windows::core::*;
+#[cfg(windows)]
 use windows::Win32::Graphics::Dxgi::*;
+#[cfg(windows)]
 use windows::Win32::Graphics::Dxgi::Common::*;
+#[cfg(windows)]
 use windows::Win32::Graphics::Direct3D::*;
+#[cfg(windows)]
 use windows::Win32::Graphics::Direct3D12::*;
+
 
 
 pub struct VerticesDirectX12 {
@@ -119,7 +125,9 @@ impl Sampler for SamplerDirectX12 {
 }
 
 pub struct RendererDirectX12 {
+  #[cfg(windows)]
   device: ID3D12Device,
+  #[cfg(windows)]
   swap_chain: IDXGISwapChain3,
 
   clear_color: Vec4,
@@ -249,6 +257,12 @@ fn print_type_of<T>(_: &T) {
 
 #[allow(dead_code)]
 impl RendererDirectX12 {
+  #[cfg(not(windows))]
+  pub fn new(a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> Result<Self, RendererError>{
+    Err(RendererError::UnsupportedAPI)
+  }
+
+  #[cfg(windows)]
   pub fn new(a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> Result<Self, RendererError>{
 
     let factory = match get_factory(){
@@ -439,6 +453,7 @@ impl RendererDirectX12 {
     })
   }
 
+  #[cfg(windows)]
   fn create_device(a_factory: &IDXGIFactory6) -> Result<ID3D12Device, RendererError>{
     let feature_level = D3D_FEATURE_LEVEL_12_1;
     let mut device: Option<ID3D12Device> = None;

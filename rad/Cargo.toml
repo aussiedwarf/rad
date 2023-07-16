@@ -13,7 +13,7 @@ path = "src/lib.rs"
 #"bundled", "static-link", "ttf",
 [dependencies]
 murmur3 = "~0.5.2"
-sdl2 = { version = "~0.35.2", default-features = false, features = ["static-link", "bundled", "raw-window-handle"] }
+sdl2 = { version = "0.35.2", default-features = false, features = ["static-link", "bundled", "raw-window-handle"] }
 static_assertions = "~1.1.0"
 gl = "~0.14.0"
 raw-window-handle = "~0.5.2"

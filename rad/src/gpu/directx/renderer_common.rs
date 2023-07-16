@@ -1,8 +1,10 @@
 use crate::gpu::renderer_types::*;
 
+#[cfg(windows)]
 use windows::Win32::Graphics::Dxgi::*;
 use std::result::Result;
 
+#[cfg(windows)]
 fn get_default_adapter(a_dxgi_factory: &IDXGIFactory6) -> Result<IDXGIAdapter1, RendererError> {
   for i in 0.. {
     match unsafe {a_dxgi_factory.EnumAdapters1(i)}{
@@ -28,6 +30,7 @@ fn get_default_adapter(a_dxgi_factory: &IDXGIFactory6) -> Result<IDXGIAdapter1, 
   Err(RendererError::Error)
 }
 
+#[cfg(windows)]
 fn get_default_adapter_by_gpu_preference(a_dxgi_factory: &IDXGIFactory6, a_gpu_preference: DXGI_GPU_PREFERENCE) -> Result<IDXGIAdapter1, RendererError> {
   for i in 0.. {
     match unsafe {a_dxgi_factory.EnumAdapterByGpuPreference::<IDXGIAdapter1>(i, a_gpu_preference)}{
@@ -64,6 +67,7 @@ fn get_default_adapter_by_gpu_preference(a_dxgi_factory: &IDXGIFactory6, a_gpu_p
 //IDXGIFactory7 Windows 10, version 1809 [desktop apps only] Windows Server, version 1709
 //IDXGIAdapter1 Windows 7 [desktop apps | UWP apps] Windows Server 2008 R2
 //IDXGIAdapter2 Windows 8 and Platform Update for Windows 7 [desktop apps | UWP apps] Windows Server 2012 and Platform Update for Windows Server 2008 R2
+#[cfg(windows)]
 pub fn get_adapter(a_factory: &IDXGIFactory6, a_device_type: DeviceType) -> Result<IDXGIAdapter1, RendererError>{
   match a_device_type{
     DeviceType::Default => return get_default_adapter(&a_factory),
@@ -72,6 +76,7 @@ pub fn get_adapter(a_factory: &IDXGIFactory6, a_device_type: DeviceType) -> Resu
   }
 }
 
+#[cfg(windows)]
 pub fn get_factory() -> Result<IDXGIFactory6, RendererError>{
   let dxgi_factory_flags = if cfg!(debug_assertions) {
     DXGI_CREATE_FACTORY_DEBUG
