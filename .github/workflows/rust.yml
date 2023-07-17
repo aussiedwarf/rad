@@ -1,0 +1,26 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-ubuntu2204-x64:
+    runs-on: [self-hosted, Linux, X64]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build Debug
+      run: cargo build --verbose
+    - name: Build Release
+      run: cargo build --verbose --release
+  build-windows10-x64:
+    runs-on: [self-hosted, Windows, X64]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build Debug
+      run: cargo build --verbose
+    - name: Build Release
+      run: cargo build --verbose --release
