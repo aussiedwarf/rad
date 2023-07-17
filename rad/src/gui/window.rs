@@ -4,6 +4,7 @@ use crate::gpu::renderer;
 use crate::gpu::renderer_types;
 use crate::gpu::opengl::renderer_opengl;
 use crate::gpu::vulkan::renderer_vulkan;
+use crate::gpu::directx::renderer_directx12;
 use std::fmt;
 use std::sync::Mutex;
 use std::sync::Arc;
@@ -86,6 +87,7 @@ impl Window {
 
     let window = match a_renderer_type {
       renderer_types::RendererType::OpenGL => Window::init_window_opengl(&video_subsystem, a_name, a_width as u32, a_height as u32),
+      renderer_types::RendererType::DirectX => Window::init_window(&video_subsystem, a_name, a_width as u32, a_height as u32),
       renderer_types::RendererType::Vulkan => Window::init_window_vulkan(&video_subsystem, a_name, a_width as u32, a_height as u32),
       _ => Window::init_window(&video_subsystem, a_name, a_width as u32, a_height as u32)
     };
@@ -135,6 +137,13 @@ impl Window {
   match a_renderer_type {
     renderer_types::RendererType::OpenGL => {
       Ok(Box::new(match renderer_opengl::RendererOpenGL::new(a_video_subsystem, a_window){
+        Ok(res) => res,
+        Err(_res) => return Err(WindowError::SdlRendererError)
+      }
+      ))
+    },
+    renderer_types::RendererType::DirectX => {
+      Ok(Box::new(match renderer_directx12::RendererDirectX12::new(a_video_subsystem, a_window){
         Ok(res) => res,
         Err(_res) => return Err(WindowError::SdlRendererError)
       }

@@ -2,12 +2,10 @@ extern crate sdl2;
 //extern crate raw_window_handle;
 extern crate libc;
 
-use crate::gpu::camera::*;
-use crate::gpu::renderer_types;
-
-use crate::gpu::material;
-
-use crate::gui::window::*;
+use rad::gpu::camera::*;
+use rad::gpu::renderer_types;
+use rad::gpu::material;
+use rad::gui::window::*;
 
 //use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 

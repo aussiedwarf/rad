@@ -1,8 +1,17 @@
 
 extern crate glam;
 
+use bitflags::bitflags;
 use glam::*;
 use std::fmt;
+
+#[allow(dead_code)]
+#[derive(Copy, Clone)]
+pub enum DeviceType {
+  Default,
+  HighPerformance,
+  LowPower
+}
 
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
@@ -31,6 +40,7 @@ pub enum RendererError {
   Error,
   ShaderCompile,
   InvalidCast,
+  UnsupportedAPI,
   Unimplemented
 }
 
@@ -161,9 +171,10 @@ impl fmt::Display for RendererError {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self {
       RendererError::Error => write!(f, "Error"),
-      RendererError::Unimplemented => write!(f, "Error Unimplemented"),
       RendererError::InvalidCast => write!(f, "Error InvalidCast"),
       RendererError::ShaderCompile => write!(f, "Error ShaderCompile"),
+      RendererError::UnsupportedAPI => write!(f, "Error UnsupportedAPI"),
+      RendererError::Unimplemented => write!(f, "Error Unimplemented"),
     }
   }
 }
