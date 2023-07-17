@@ -12,11 +12,15 @@ jobs:
     runs-on: [self-hosted, Linux, X64]
     steps:
     - uses: actions/checkout@v3
-    - name: Build
+    - name: Build Debug
       run: cargo build --verbose
+    - name: Build Release
+      run: cargo build --verbose --release
   build-windows10-x64:
     runs-on: [self-hosted, Windows, X64]
     steps:
     - uses: actions/checkout@v3
-    - name: Build
+    - name: Build Debug
       run: cargo build --verbose
+    - name: Build Release
+      run: cargo build --verbose --release
