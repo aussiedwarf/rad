@@ -3,7 +3,14 @@ Rust Advanced Design
 
 
 ## Requirements
-For wasm, need to install emscripten.
+
+- Rust
+- C++ compiler
+- Cmake
+- Linux and Windows need the Vulkan SDK to be installed
+
+### Wasm
+For wasm, need to install emscripten and rust wasm32.
 `rustup target add wasm32-unknown-emscripten`
 
 To compile wasm
