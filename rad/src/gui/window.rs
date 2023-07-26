@@ -133,23 +133,27 @@ impl Window {
   } 
 
   pub fn init_renderer(a_renderer_type: renderer_types::RendererType, a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> 
-  Result<Box<dyn renderer::Renderer>, WindowError > {
+    Result<Box<dyn renderer::Renderer>, WindowError > 
+  {
   match a_renderer_type {
-    renderer_types::RendererType::OpenGL => {
+      renderer_types::RendererType::OpenGL => 
+      {
       Ok(Box::new(match renderer_opengl::RendererOpenGL::new(a_video_subsystem, a_window){
         Ok(res) => res,
         Err(_res) => return Err(WindowError::SdlRendererError)
       }
       ))
     },
-    renderer_types::RendererType::DirectX => {
+      renderer_types::RendererType::DirectX => 
+      {
       Ok(Box::new(match renderer_directx12::RendererDirectX12::new(a_video_subsystem, a_window){
         Ok(res) => res,
         Err(_res) => return Err(WindowError::SdlRendererError)
       }
       ))
     },
-    renderer_types::RendererType::Vulkan => {
+      renderer_types::RendererType::Vulkan => 
+      {
       Ok(Box::new( match renderer_vulkan::RendererVulkan::new(){
         Ok(res) => res,
         Err(_res) => return Err(WindowError::SdlRendererError)
