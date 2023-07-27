@@ -184,7 +184,9 @@ impl Renderer for RendererOpenGL {
     self.clear(a_clear);
   }
 
-  fn end_frame(&mut self){}
+  fn end_frame(&mut self){
+    
+  }
 
   //clear immediatly
   fn clear(&mut self, a_clear: RendererClearType){
@@ -612,14 +614,24 @@ impl Renderer for RendererOpenGL {
 
 #[allow(dead_code)]
 impl RendererOpenGL {
-  pub fn new(a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> Result<Self, RendererError>{
-    let gl_context = match init_gl_context(&a_video_subsystem, &a_window) {
-      Ok(res) => res,
-      Err(_res) => return Err(RendererError::Error)
+  pub fn new(a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window, a_is_gles: bool) -> Result<Self, RendererError>{
+    let gl_context = match a_is_gles {
+      true => match init_gles_context(&a_video_subsystem, &a_window) {
+        Ok(res) => res,
+        Err(_res) => return Err(RendererError::Error)
+      },
+      false => match init_gl_context(&a_video_subsystem, &a_window) {
+        Ok(res) => res,
+        Err(_res) => return Err(RendererError::Error)
+      }
     };
+    
+    
 
     gl::load_with(|s| a_video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
 
+    // swap interval requires emscripten main loop to be set first
+    #[cfg(not(target_os = "emscripten"))]
     match a_video_subsystem.gl_set_swap_interval(sdl2::video::SwapInterval::Immediate){
       Ok(_res) => _res,
       Err(_res) => print!("Unable to set vsync")
@@ -774,7 +786,6 @@ impl Drop for TextureOpenGL {
 }
 
 fn init_gl_context(a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> Result<sdl2::video::GLContext, RendererError> {
-  //let mut attempt = true;
   let mut gl_version_major = 4;
   let mut gl_version_minor = 6;
 
@@ -809,6 +820,46 @@ fn init_gl_context(a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::vi
         else if gl_version_major == 2 && gl_version_minor == 0 {
           gl_version_major = 1;
           gl_version_minor = 5;
+        }
+        else if gl_version_major == 1 && gl_version_minor == 0 {
+          return Err(RendererError::Error)
+        }
+      }
+    }
+  }
+}
+
+fn init_gles_context(a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> Result<sdl2::video::GLContext, RendererError> {
+  let mut gl_version_major = 3;
+  let mut gl_version_minor = 2;
+
+  let gl_attr = a_video_subsystem.gl_attr();
+
+  loop {
+    if gl_version_major > 2 {
+      gl_attr.set_context_profile(sdl2::video::GLProfile::GLES);
+    }
+    
+    gl_attr.set_context_version(gl_version_major, gl_version_minor);
+
+    let gl_context_result = a_window.gl_create_context();
+
+    match gl_context_result {
+      Ok(res) => {
+        return Ok(res);
+      },
+      Err(_res) => {
+        //try lower version of gl
+        if gl_version_minor > 0 {
+          gl_version_minor -= 1;
+        }
+        else if gl_version_major == 3 && gl_version_minor == 0 {
+          gl_version_major = 2;
+          gl_version_minor = 0;
+        }
+        else if gl_version_major == 2 && gl_version_minor == 0 {
+          gl_version_major = 1;
+          gl_version_minor = 1;
         }
         else if gl_version_major == 1 && gl_version_minor == 0 {
           return Err(RendererError::Error)

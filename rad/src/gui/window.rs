@@ -86,7 +86,7 @@ impl Window {
       */
 
     let window = match a_renderer_type {
-      renderer_types::RendererType::OpenGL => Window::init_window_opengl(&video_subsystem, a_name, a_width as u32, a_height as u32),
+      renderer_types::RendererType::OpenGL | renderer_types::RendererType::OpenGLES => Window::init_window_opengl(&video_subsystem, a_name, a_width as u32, a_height as u32),
       renderer_types::RendererType::DirectX => Window::init_window(&video_subsystem, a_name, a_width as u32, a_height as u32),
       renderer_types::RendererType::Vulkan => Window::init_window_vulkan(&video_subsystem, a_name, a_width as u32, a_height as u32),
       _ => Window::init_window(&video_subsystem, a_name, a_width as u32, a_height as u32)
@@ -135,10 +135,11 @@ impl Window {
   pub fn init_renderer(a_renderer_type: renderer_types::RendererType, a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> 
     Result<Box<dyn renderer::Renderer>, WindowError > 
   {
+    let is_gles = a_renderer_type == renderer_types::RendererType::OpenGLES;
   match a_renderer_type {
-      renderer_types::RendererType::OpenGL => 
+      renderer_types::RendererType::OpenGL | renderer_types::RendererType::OpenGLES => 
       {
-      Ok(Box::new(match renderer_opengl::RendererOpenGL::new(a_video_subsystem, a_window){
+        Ok(Box::new(match renderer_opengl::RendererOpenGL::new(a_video_subsystem, a_window, is_gles){
         Ok(res) => res,
         Err(_res) => return Err(WindowError::SdlRendererError)
       }
