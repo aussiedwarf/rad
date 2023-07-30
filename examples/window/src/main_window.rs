@@ -11,6 +11,8 @@ use rad::gui::window::*;
 #[cfg(target_os = "emscripten")]
 use rad::gui::emscripten::{emscripten};
 
+use rad::core::filesystem::{filesystem};
+
 //use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 
 use sdl2::event::Event;
@@ -41,11 +43,27 @@ impl Renderer {
       Ok(res) => res,
       Err(_res) => panic!("Error creating renderer")
     };
+
+    let test_str = match filesystem::read_text_file_immediate("basic.vert"){
+      Ok(res) => res,
+      Err(_res) => return Err(renderer_types::RendererError::Error)
+    };
+    println!("File:\n{}", test_str);
+
+    let img = match image::open("image.jpg"){
+      Ok(res) => res,
+      Err(_res) => return Err(renderer_types::RendererError::Error)
+    };
     
     let mut file_vertex = match File::open("basic.vert"){
       Ok(res) => res,
       Err(_res) => return Err(renderer_types::RendererError::Error)
     };
+    let length = match file_vertex.metadata() {
+      Ok(res) => res.len(),
+      Err(_res) => return Err(renderer_types::RendererError::Error)
+    };
+    println!("Length:{}", length);
     let mut source_vertex = String::new();
     match file_vertex.read_to_string(&mut source_vertex){
       Ok(res) => res,
@@ -61,6 +79,7 @@ impl Renderer {
       Ok(res) => res,
       Err(_res) => return Err(renderer_types::RendererError::Error)
     };
+
     let mut source_frag = String::new();
     match file_frag.read_to_string(&mut source_frag){
       Ok(res) => res,
@@ -77,14 +96,10 @@ impl Renderer {
       Err(_res) => return Err(renderer_types::RendererError::Error)
     };
 
-    let img = match image::open("image.jpg"){
-      Ok(res) => res,
-      Err(_res) => return Err(renderer_types::RendererError::Error)
-    };
+    
 
     //only need to flip with opengl
     let img = img.flipv();
-
     let mut texture = renderer.gen_buffer_texture();
 
     renderer.load_texture(&img, &mut texture);
@@ -122,7 +137,6 @@ impl Renderer {
     let mut camera = Camera::new();
     camera.set_viewport(Vec2::new(window.width as f32, window.height as f32), 
       Vec2::ZERO, Vec2::new(window.width as f32, window.height as f32), Vec2::ZERO);
-
 
     return Ok(Renderer{
       renderer: renderer,
@@ -186,6 +200,7 @@ impl MainWindow {
     }
   }
 
+  #[cfg(not(target_os = "emscripten"))]
   pub fn init_threads(&mut self) {
     let running_logic = Arc::clone(&self.running_events);
 
@@ -205,6 +220,7 @@ impl MainWindow {
     std::thread::sleep(Duration::new(0, 1));
   }
 
+  #[cfg(not(target_os = "emscripten"))]
   pub fn run_logic_loop(running: Arc<AtomicBool>) {
     
     while running.load(Ordering::SeqCst){

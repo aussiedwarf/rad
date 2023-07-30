@@ -19,6 +19,8 @@ struct Args {
 fn main() {
   let args = Args::parse();
 
+  println!("Start");
+
   let graphics_api = match args.graphics_api.as_str() {
     "opengl" => gpu::renderer_types::RendererType::OpenGL,
     "opengles" => gpu::renderer_types::RendererType::OpenGLES,
