@@ -1,13 +1,18 @@
 
 pub mod filesystem {
-    use std::os::raw::{c_char, c_void};
+    use std::os::raw::{c_char, c_void, c_longlong};
+    use libc::FILE;
+
+    extern {
+        pub fn _ftelli64(file: *mut FILE) -> c_longlong;
+    }
 
     // rust fs does not seem to have correct file size with emscripten so add method to call cstdio functions directly
     pub fn read_text_file_immediate(filename: &str) -> std::io::Result<String> {
         let filename_str = std::ffi::CString::new(filename).unwrap();
         let filename_ptr: *const c_char = filename_str.as_ptr() as *const c_char;
 
-        let args_str = std::ffi::CString::new("r").unwrap();
+        let args_str = std::ffi::CString::new("rb").unwrap();
         let args_ptr: *const c_char = args_str.as_ptr() as *const c_char;
 
         let file = unsafe { libc::fopen(filename_ptr, args_ptr) };
@@ -18,7 +23,13 @@ pub mod filesystem {
         }
 
         unsafe { libc::fseek(file, 0, libc::SEEK_END) };
-        let size = unsafe { libc::ftello64(file) };
+
+        // ftell64 is unix only and _ftelli64 is windows only
+        #[cfg(not(windows))]
+        let size = unsafe { libc::ftell64(file) };
+        #[cfg(windows)]
+        let size = unsafe { _ftelli64(file) };
+
         unsafe { libc::rewind(file) };
 
         if size == 0 {
