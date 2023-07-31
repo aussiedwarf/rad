@@ -26,7 +26,7 @@ pub mod filesystem {
 
         // ftell64 is unix only and _ftelli64 is windows only
         #[cfg(not(windows))]
-        let size = unsafe { libc::ftell64(file) };
+        let size = unsafe { libc::ftello64(file) };
         #[cfg(windows)]
         let size = unsafe { _ftelli64(file) };
 
