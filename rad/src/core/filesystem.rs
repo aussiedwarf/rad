@@ -7,8 +7,7 @@ pub mod filesystem {
         pub fn _ftelli64(file: *mut FILE) -> c_longlong;
     }
 
-    // rust fs does not seem to have correct file size with emscripten so add method to call cstdio functions directly
-    pub fn read_text_file_immediate(filename: &str) -> std::io::Result<String> {
+    fn read_data<T: Default + Clone>(filename: &str, extra_size: usize) -> std::io::Result<Vec<T>> {
         let filename_str = std::ffi::CString::new(filename).unwrap();
         let filename_ptr: *const c_char = filename_str.as_ptr() as *const c_char;
 
@@ -38,17 +37,37 @@ pub mod filesystem {
             return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, err_msg))
         }
 
-        //read buffer with extra byte for null character
-        let mut buffer: Vec<c_char> = vec![0; 1 + size as usize];
+        let num = ((extra_size + size as usize) + std::mem::size_of::<T>() - 1) / std::mem::size_of::<T>();
+
+        let mut buffer: Vec<T> = vec![T::default(); num];
         let ptr = buffer.as_mut_ptr();
 
         let read_size = unsafe { libc::fread(ptr as *mut c_void, 1, size as usize, file) };
 
+        unsafe { libc::fclose(file) };
+
         if read_size != size as usize{
-            unsafe { libc::fclose(file) };
             let err_msg = format!("Read size for '{}' does not equal file size.", filename);
             return Err(std::io::Error::new(std::io::ErrorKind::InvalidData, err_msg))
         }
+
+        Ok(buffer)
+    }
+
+    // rust fs does not seem to have correct file size with emscripten so add method to call cstdio functions directly
+    pub fn read_file_immediate<T: Default + Clone>(filename: &str) -> std::io::Result<Vec<T>> {
+        return read_data::<T>(filename, 0)
+    }
+
+    // rust fs does not seem to have correct file size with emscripten so add method to call cstdio functions directly
+    pub fn read_text_file_immediate(filename: &str) -> std::io::Result<String> {
+        //read buffer with extra byte for null character
+        let mut buffer = match read_data::<c_char>(filename, 1){
+            Ok(res) => res,
+            Err(res) => return Err(res)
+        };
+
+        let ptr = buffer.as_mut_ptr();
 
         std::mem::forget(buffer);
 
@@ -56,10 +75,6 @@ pub mod filesystem {
             let c_str = std::ffi::CStr::from_ptr(ptr);
             c_str.to_string_lossy().into_owned()
         };
-
-        println!("Len {}, Size {}", size, string.len());
-
-        unsafe { libc::fclose(file) };
 
         return Ok(string);
     }

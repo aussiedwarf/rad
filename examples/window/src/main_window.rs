@@ -44,28 +44,20 @@ impl Renderer {
       Err(_res) => panic!("Error creating renderer")
     };
 
-    let test_str = match filesystem::read_text_file_immediate("basic.vert"){
+    let image_data = match filesystem::read_file_immediate::<u8>("image.jpg"){
       Ok(res) => res,
       Err(_res) => return Err(renderer_types::RendererError::Error)
     };
-    println!("File:\n{}", test_str);
 
-    let img = match image::open("image.jpg"){
-      Ok(res) => res,
-      Err(_res) => return Err(renderer_types::RendererError::Error)
-    };
+    println!("File size: {}", image_data.len());
+
     
-    let mut file_vertex = match File::open("basic.vert"){
+    let source_vertex = match filesystem::read_text_file_immediate("basic.vert"){
       Ok(res) => res,
       Err(_res) => return Err(renderer_types::RendererError::Error)
     };
-    let length = match file_vertex.metadata() {
-      Ok(res) => res.len(),
-      Err(_res) => return Err(renderer_types::RendererError::Error)
-    };
-    println!("Length:{}", length);
-    let mut source_vertex = String::new();
-    match file_vertex.read_to_string(&mut source_vertex){
+
+    let img = match image::load_from_memory(image_data.as_slice()){
       Ok(res) => res,
       Err(_res) => return Err(renderer_types::RendererError::Error)
     };
@@ -75,13 +67,7 @@ impl Renderer {
       Err(_res) => return Err(renderer_types::RendererError::Error)
     };
 
-    let mut file_frag = match File::open("basic.frag"){
-      Ok(res) => res,
-      Err(_res) => return Err(renderer_types::RendererError::Error)
-    };
-
-    let mut source_frag = String::new();
-    match file_frag.read_to_string(&mut source_frag){
+    let mut source_frag = match filesystem::read_text_file_immediate("basic.frag"){
       Ok(res) => res,
       Err(_res) => return Err(renderer_types::RendererError::Error)
     };
@@ -95,8 +81,6 @@ impl Renderer {
       Ok(res) => res,
       Err(_res) => return Err(renderer_types::RendererError::Error)
     };
-
-    
 
     //only need to flip with opengl
     let img = img.flipv();
