@@ -38,5 +38,8 @@ fn main() {
     }
   };
 
-  main_window.run();
+  main_window.init();
+
+  rad::gui::main_loop::run_loop(main_window);
+
 }

@@ -520,13 +520,19 @@ impl Renderer for RendererOpenGL {
       None => panic!("Invalid texture")
     };
 
-    let mut bgra =  image::DynamicImage::ImageRgba8(a_image.to_rgba8());
-    self.to_bgra8(&mut bgra);
+    // let mut bgra =  image::DynamicImage::ImageRgba8(a_image.to_rgba8());
+    // self.to_bgra8(&mut bgra);
+
+    let rgba =  image::DynamicImage::ImageRgba8(a_image.to_rgba8());
+    // self.to_rgba8(&mut rgba);
 
     unsafe{
       gl::BindTexture(gl::TEXTURE_2D, texture.id);
-      gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA as i32, bgra.width() as i32, bgra.height() as i32, 0, 
-        gl::BGRA, gl::UNSIGNED_BYTE, bgra.as_bytes().as_ptr() as *const std::os::raw::c_void);
+      // gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA as i32, bgra.width() as i32, bgra.height() as i32, 0, 
+      //   gl::BGRA, gl::UNSIGNED_BYTE, bgra.as_bytes().as_ptr() as *const std::os::raw::c_void);
+
+      gl::TexImage2D(gl::TEXTURE_2D, 0, gl::RGBA as i32, rgba.width() as i32, rgba.height() as i32, 0, 
+        gl::RGBA, gl::UNSIGNED_BYTE, rgba.as_bytes().as_ptr() as *const std::os::raw::c_void);
 
       gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as i32);
       gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as i32);
@@ -634,7 +640,7 @@ impl RendererOpenGL {
     #[cfg(not(target_os = "emscripten"))]
     match a_video_subsystem.gl_set_swap_interval(sdl2::video::SwapInterval::Immediate){
       Ok(_res) => _res,
-      Err(_res) => print!("Unable to set vsync")
+      Err(_res) => print!("Unable to set vsync\n")
     };
 
     Ok(Self {
