@@ -4,3 +4,12 @@ members = [
     "rad",
     "examples/window",
 ]
+
+[profile.dev.package.image]
+opt-level = 3
+
+[profile.dev.package.jpeg-decoder]
+opt-level = 3
+
+[profile.dev.package.png]
+opt-level = 3
