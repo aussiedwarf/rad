@@ -47,7 +47,7 @@ impl Renderer {
     };
 
     let shader_path = match window.renderer_type {
-      renderer_types::RendererType::OpenGL => "shaders/opengl/",
+      renderer_types::RendererType::OpenGL => "shaders/gl/",
       renderer_types::RendererType::OpenGLES => "shaders/gles/",
       _ => "shaders/"
     };
