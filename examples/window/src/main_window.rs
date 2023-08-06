@@ -20,8 +20,6 @@ use rad::core::filesystem::{filesystem};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
-use std::fs::File;
-use std::io::prelude::*;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
