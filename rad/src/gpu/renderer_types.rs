@@ -14,13 +14,14 @@ pub enum DeviceType {
 }
 
 #[allow(dead_code)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum RendererType {
   OpenGL,
   OpenGLES,
   DirectX,
   Vulkan,
-  Metal
+  Metal,
+  WebGpu
 }
 
 #[allow(dead_code)]
