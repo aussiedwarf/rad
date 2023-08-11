@@ -62,7 +62,10 @@ pub struct Window{
 }
 
 impl Window {
-  pub fn new(a_renderer_type: renderer_types::RendererType, a_name: &str, a_width: u32, a_height: u32) -> Result<Window, WindowError> {
+  pub fn new(
+    a_renderer_type: renderer_types::RendererType, 
+    a_name: &str, a_width: u32, a_height: u32) -> Result<Window, WindowError> 
+  {
     let sdl_context = match sdl2::init(){
       Ok(res) => res,
       Err(_res) => return Err(WindowError::SdlInitError)
@@ -132,16 +135,20 @@ impl Window {
     Ok(result)
   } 
 
-  pub fn init_renderer(a_renderer_type: renderer_types::RendererType, a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> 
-    Result<Box<dyn renderer::Renderer>, WindowError > 
+  pub fn init_renderer(
+    a_renderer_type: renderer_types::RendererType, 
+    a_min_version: renderer_types::Version, 
+    a_max_version: renderer_types::Version, 
+    a_video_subsystem: &sdl2::VideoSubsystem, 
+    a_window: &sdl2::video::Window) -> Result<Box<dyn renderer::Renderer>, WindowError > 
   {
     let is_gles = a_renderer_type == renderer_types::RendererType::OpenGLES;
-  match a_renderer_type {
+    match a_renderer_type {
       renderer_types::RendererType::OpenGL | renderer_types::RendererType::OpenGLES => 
       {
-        Ok(Box::new(match renderer_opengl::RendererOpenGL::new(a_video_subsystem, a_window, is_gles){
+        Ok(Box::new(match renderer_opengl::RendererOpenGL::new(a_video_subsystem, a_min_version, a_max_version,  a_window, is_gles){
         Ok(res) => res,
-        Err(_res) => return Err(WindowError::SdlRendererError)
+        Err(res) => return Err(WindowError::SdlRendererError)
       }
       ))
     },

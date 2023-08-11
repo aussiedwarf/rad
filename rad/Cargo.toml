@@ -44,3 +44,8 @@ features = [
 
 [target.'cfg(target_os = "emscripten")'.features]
 default = ["pthread"]
+
+[[test]]
+name = "window_tests"
+harness = false
+

@@ -15,6 +15,21 @@ pub enum DeviceType {
 
 #[allow(dead_code)]
 #[derive(Copy, Clone, PartialEq)]
+pub enum VersionNum {
+  Highest,
+  Lowest,
+  Value(i32)
+}
+
+#[derive(Copy, Clone, PartialEq)]
+pub struct Version {
+  pub major: VersionNum,
+  pub minor: VersionNum,
+  pub patch: VersionNum
+}
+
+#[allow(dead_code)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum RendererType {
   OpenGL,
   OpenGLES,
@@ -41,6 +56,7 @@ pub enum RendererError {
   Error,
   ShaderCompile,
   InvalidCast,
+  InvalidVersion,
   UnsupportedAPI,
   Unimplemented
 }
@@ -173,6 +189,7 @@ impl fmt::Display for RendererError {
     match self {
       RendererError::Error => write!(f, "Error"),
       RendererError::InvalidCast => write!(f, "Error InvalidCast"),
+      RendererError::InvalidVersion => write!(f, "Error InvalidVersion"),
       RendererError::ShaderCompile => write!(f, "Error ShaderCompile"),
       RendererError::UnsupportedAPI => write!(f, "Error UnsupportedAPI"),
       RendererError::Unimplemented => write!(f, "Error Unimplemented"),

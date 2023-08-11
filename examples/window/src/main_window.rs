@@ -37,6 +37,8 @@ impl Renderer {
   pub fn new(window: Arc<Window>) -> Result<Renderer, renderer_types::RendererError> {
     let mut renderer = match Window::init_renderer(
       window.renderer_type, 
+      renderer_types::Version{major: renderer_types::VersionNum::Lowest, minor: renderer_types::VersionNum::Lowest, patch: renderer_types::VersionNum::Lowest},
+      renderer_types::Version{major: renderer_types::VersionNum::Highest, minor: renderer_types::VersionNum::Highest, patch: renderer_types::VersionNum::Highest},
       &(window.video_subsystem.lock().unwrap()).inner,
       &(window.window.lock().unwrap()).inner)
     {
