@@ -7,8 +7,9 @@ use std::panic::{self, AssertUnwindSafe};
 fn main() {
   let mut tests = Tests::new();
 
-  tests.run("test_function_1", create_window);
-  tests.run("test_function_2", init_opengl);
+  tests.run("create_window", create_window);
+  tests.run("init_opengl", init_opengl);
+  tests.run("init_opengles", init_opengles);
 
   println!("\nTest Results:");
   println!("Total: {}", tests.passed + tests.failed);
@@ -80,8 +81,29 @@ fn init_opengl() {
         &(window.video_subsystem.lock().unwrap()).inner,
         &(window.window.lock().unwrap()).inner);
 
-      assert!(renderer_result.is_ok(), "renderer creation failed");
+      assert!(renderer_result.is_ok(), "Renderer creation failed version {}.{}", major_version, minor_version);
     }
   }
 }
 
+fn init_opengles() { 
+  let minor_versions = [1, 0, 2];
+
+  for major_version in 1..=3{
+    for minor_version in 0..=minor_versions[major_version-1]{
+      let window_result = Window::new(renderer_types::RendererType::OpenGLES, "Test", 240, 160);
+        
+      assert!(window_result.is_ok(), "window creation failed");
+
+      let window = window_result.unwrap();
+
+      let renderer_result = Window::init_renderer(window.renderer_type, 
+        renderer_types::Version{major: renderer_types::VersionNum::Value(major_version as i32), minor: renderer_types::VersionNum::Value(minor_version), patch: renderer_types::VersionNum::Lowest},
+        renderer_types::Version{major: renderer_types::VersionNum::Value(major_version as i32), minor: renderer_types::VersionNum::Value(minor_version), patch: renderer_types::VersionNum::Highest},
+        &(window.video_subsystem.lock().unwrap()).inner,
+        &(window.window.lock().unwrap()).inner);
+
+      assert!(renderer_result.is_ok(), "Renderer creation failed version {}.{}", major_version, minor_version);
+    }
+  }
+}
