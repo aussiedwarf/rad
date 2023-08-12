@@ -4,6 +4,7 @@ extern crate glam;
 use bitflags::bitflags;
 use glam::*;
 use std::fmt;
+use strum_macros::EnumIter;
 
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
@@ -29,7 +30,7 @@ pub struct Version {
 }
 
 #[allow(dead_code)]
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, PartialEq, EnumIter)]
 pub enum RendererType {
   OpenGL,
   OpenGLES,
@@ -193,6 +194,19 @@ impl fmt::Display for RendererError {
       RendererError::ShaderCompile => write!(f, "Error ShaderCompile"),
       RendererError::UnsupportedAPI => write!(f, "Error UnsupportedAPI"),
       RendererError::Unimplemented => write!(f, "Error Unimplemented"),
+    }
+  }
+}
+
+impl fmt::Display for RendererType {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    match self {
+      RendererType::OpenGL => write!(f, "OpenGL"),
+      RendererType::OpenGLES => write!(f, "OpenGLES"),
+      RendererType::DirectX => write!(f, "DirectX"),
+      RendererType::Vulkan => write!(f, "Vulkan"),
+      RendererType::Metal => write!(f, "Metal"),
+      RendererType::WebGpu => write!(f, "WebGpu"),
     }
   }
 }

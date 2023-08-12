@@ -19,6 +19,8 @@ libc = "~0.2.147"
 glam = "~0.23.0"
 bitflags = "~2.0.2"
 image = {version = "~0.24.6", default-features = false, features = ["png", "jpeg", "bmp"]}
+strum = "0.25"
+strum_macros = "0.25"
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
 sdl2 = { git = "https://github.com/Rust-SDL2/rust-sdl2.git", rev = "8613c50", default-features = false, features = ["static-link", "bundled", "raw-window-handle"] }
