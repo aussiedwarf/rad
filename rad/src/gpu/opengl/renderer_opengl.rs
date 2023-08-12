@@ -620,20 +620,27 @@ impl Renderer for RendererOpenGL {
 
 #[allow(dead_code)]
 impl RendererOpenGL {
-  pub fn new(a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window, a_is_gles: bool) -> Result<Self, RendererError>{
+  const GL_MAX_VERSION_MINOR: [i32; 5] = [0, 5, 1, 3, 6];
+  const GLES_MAX_VERSION_MINOR: [i32; 4] = [0, 1, 0, 2];
+
+  pub fn new(
+    a_video_subsystem: &sdl2::VideoSubsystem, 
+    a_min_version: Version, 
+    a_max_version: Version, 
+    a_window: &sdl2::video::Window, 
+    a_is_gles: bool) -> Result<Self, RendererError>
+  {
     let gl_context = match a_is_gles {
-      true => match init_gles_context(&a_video_subsystem, &a_window) {
+      true => match init_gles_context(&a_video_subsystem, a_min_version, a_max_version, &a_window) {
         Ok(res) => res,
         Err(_res) => return Err(RendererError::Error)
       },
-      false => match init_gl_context(&a_video_subsystem, &a_window) {
+      false => match init_gl_context(&a_video_subsystem, a_min_version, a_max_version, &a_window) {
         Ok(res) => res,
         Err(_res) => return Err(RendererError::Error)
       }
     };
     
-    
-
     gl::load_with(|s| a_video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
 
     // swap interval requires emscripten main loop to be set first
@@ -791,18 +798,79 @@ impl Drop for TextureOpenGL {
   }
 }
 
-fn init_gl_context(a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> Result<sdl2::video::GLContext, RendererError> {
-  let mut gl_version_major = 4;
-  let mut gl_version_minor = 6;
+fn get_gl_version_major(a_version: VersionNum) -> i32 {
+  return match a_version {
+    VersionNum::Highest => 4,
+    VersionNum::Lowest => 1,
+    VersionNum::Value(res) => res
+  }
+}
+
+fn get_gl_version_minor( a_version_major: i32, a_version_minor: VersionNum) -> Result<i32, RendererError> {
+  return match a_version_minor{
+    VersionNum::Highest => {
+      if a_version_major >= 1 && a_version_major < RendererOpenGL::GL_MAX_VERSION_MINOR.len() as i32{
+        Ok(RendererOpenGL::GL_MAX_VERSION_MINOR[a_version_major as usize])
+      }
+      else {
+        Err(RendererError::InvalidVersion)
+      }
+    },
+    VersionNum::Lowest => Ok(0),
+    VersionNum::Value(res) => Ok(res)
+  };
+}
+
+fn get_gles_version_major(a_version: VersionNum) -> i32 {
+  return match a_version {
+    VersionNum::Highest => 3,
+    VersionNum::Lowest => 1,
+    VersionNum::Value(res) => res
+  }
+}
+
+fn get_gles_version_minor( a_version_major: i32, a_version_minor: VersionNum) -> Result<i32, RendererError> {
+  return match a_version_minor{
+    VersionNum::Highest => {
+      if a_version_major >= 1 && a_version_major < RendererOpenGL::GLES_MAX_VERSION_MINOR.len() as i32{
+        Ok(RendererOpenGL::GLES_MAX_VERSION_MINOR[a_version_major as usize])
+      }
+      else {
+        Err(RendererError::InvalidVersion)
+      }
+    },
+    VersionNum::Lowest => Ok(0),
+    VersionNum::Value(res) => Ok(res)
+  };
+}
+
+fn init_gl_context(
+  a_video_subsystem: &sdl2::VideoSubsystem, 
+  a_min_version: Version, 
+  a_max_version: Version,
+  a_window: &sdl2::video::Window) -> Result<sdl2::video::GLContext, RendererError> 
+{
+  let mut version_major = get_gl_version_major(a_max_version.major);
+
+  let mut version_minor = match get_gl_version_minor(version_major, a_max_version.minor){
+    Ok(res) => res,
+    Err(res) => return Err(res)
+  };
+
+  let min_version_major = get_gl_version_major(a_min_version.major);
+  let min_version_minor = match get_gl_version_minor(min_version_major, a_min_version.minor){
+    Ok(res) => res,
+    Err(res) => return Err(res)
+  };
 
   let gl_attr = a_video_subsystem.gl_attr();
 
   loop {
-    if gl_version_major > 2 {
+    if version_major > 2 {
       gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
     }
     
-    gl_attr.set_context_version(gl_version_major, gl_version_minor);
+    gl_attr.set_context_version(version_major as u8, version_minor as u8);
 
     let gl_context_result = a_window.gl_create_context();
 
@@ -812,22 +880,16 @@ fn init_gl_context(a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::vi
       },
       Err(_res) => {
         //try lower version of gl
-        if gl_version_minor > 0 {
-          gl_version_minor -= 1;
+        if version_minor > 0 {
+          version_minor -= 1;
         }
-        else if gl_version_major == 4 && gl_version_minor == 0 {
-          gl_version_major = 3;
-          gl_version_minor = 3;
+        else if version_minor == 0 && version_major > 0{
+          version_major -= 1;
+          version_minor = RendererOpenGL::GL_MAX_VERSION_MINOR[version_major as usize];
         }
-        else if gl_version_major == 3 && gl_version_minor == 0 {
-          gl_version_major = 2;
-          gl_version_minor = 1;
-        }
-        else if gl_version_major == 2 && gl_version_minor == 0 {
-          gl_version_major = 1;
-          gl_version_minor = 5;
-        }
-        else if gl_version_major == 1 && gl_version_minor == 0 {
+
+        //check if we go below min version
+        if (version_major < min_version_major) || (version_major == min_version_major && version_minor < min_version_minor){
           return Err(RendererError::Error)
         }
       }
@@ -835,18 +897,33 @@ fn init_gl_context(a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::vi
   }
 }
 
-fn init_gles_context(a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> Result<sdl2::video::GLContext, RendererError> {
-  let mut gl_version_major = 3;
-  let mut gl_version_minor = 2;
+fn init_gles_context(
+  a_video_subsystem: &sdl2::VideoSubsystem, 
+  a_min_version: Version, 
+  a_max_version: Version, 
+  a_window: &sdl2::video::Window) -> Result<sdl2::video::GLContext, RendererError> 
+{
+  let mut version_major = get_gles_version_major(a_max_version.major);
+
+  let mut version_minor = match get_gles_version_minor(version_major, a_max_version.minor){
+    Ok(res) => res,
+    Err(res) => return Err(res)
+  };
+
+  let min_version_major = get_gles_version_major(a_min_version.major);
+  let min_version_minor = match get_gles_version_minor(min_version_major, a_min_version.minor){
+    Ok(res) => res,
+    Err(res) => return Err(res)
+  };
 
   let gl_attr = a_video_subsystem.gl_attr();
 
   loop {
-    if gl_version_major > 2 {
+    if version_major > 2 {
       gl_attr.set_context_profile(sdl2::video::GLProfile::GLES);
     }
     
-    gl_attr.set_context_version(gl_version_major, gl_version_minor);
+    gl_attr.set_context_version(version_major as u8, version_minor as u8);
 
     let gl_context_result = a_window.gl_create_context();
 
@@ -856,18 +933,16 @@ fn init_gles_context(a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::
       },
       Err(_res) => {
         //try lower version of gl
-        if gl_version_minor > 0 {
-          gl_version_minor -= 1;
+        if version_minor > 0 {
+          version_minor -= 1;
         }
-        else if gl_version_major == 3 && gl_version_minor == 0 {
-          gl_version_major = 2;
-          gl_version_minor = 0;
+        else if version_minor == 0 && version_major > 0{
+          version_major -= 1;
+          version_minor = RendererOpenGL::GL_MAX_VERSION_MINOR[version_major as usize];
         }
-        else if gl_version_major == 2 && gl_version_minor == 0 {
-          gl_version_major = 1;
-          gl_version_minor = 1;
-        }
-        else if gl_version_major == 1 && gl_version_minor == 0 {
+
+        //check if we go below min version
+        if (version_major < min_version_major) || (version_major == min_version_major && version_minor < min_version_minor){
           return Err(RendererError::Error)
         }
       }

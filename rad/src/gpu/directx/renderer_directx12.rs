@@ -24,8 +24,6 @@ use windows::Win32::Graphics::Direct3D::*;
 #[cfg(windows)]
 use windows::Win32::Graphics::Direct3D12::*;
 
-
-
 pub struct VerticesDirectX12 {
 }
 
@@ -148,7 +146,7 @@ impl Renderer for RendererDirectX12 {
     RendererType::DirectX
   }
 
-  fn begin_frame(&mut self, a_clear: RendererClearType){
+  fn begin_frame(&mut self, _a_clear: RendererClearType){
 
   }
 
@@ -156,18 +154,18 @@ impl Renderer for RendererDirectX12 {
 
   }
 
-  fn clear(&mut self, a_clear: RendererClearType){
+  fn clear(&mut self, _a_clear: RendererClearType){
 
   }
 
-  fn set_clear_color(&mut self, a_color: Vec4){
+  fn set_clear_color(&mut self, _a_color: Vec4){
 
   }
 
-  fn set_clear_depth(&mut self, a_depth: f32){
+  fn set_clear_depth(&mut self, _a_depth: f32){
 
   }
-  fn set_clear_stencil(&mut self, a_stencil: i32){
+  fn set_clear_stencil(&mut self, _a_stencil: i32){
 
   }
 
@@ -183,7 +181,7 @@ impl Renderer for RendererDirectX12 {
     return self.clear_stencil
   }
 
-  fn set_viewport(&mut self, a_pos: IVec2, a_size: IVec2){
+  fn set_viewport(&mut self, _a_pos: IVec2, _a_size: IVec2){
 
   }
 
@@ -195,11 +193,11 @@ impl Renderer for RendererDirectX12 {
     return self.viewport_size
   }
   
-  fn load_shader(&mut self, a_shader_type: ShaderType, a_source: &str) -> Result<Box<dyn Shader>, RendererError>{
+  fn load_shader(&mut self, _a_shader_type: ShaderType, _a_source: &str) -> Result<Box<dyn Shader>, RendererError>{
     return Err(RendererError::Unimplemented)
   }
 
-  fn load_program_vert_frag(&mut self, a_shader_vert: Box<dyn Shader>, a_shader_frag: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>{
+  fn load_program_vert_frag(&mut self, _a_shader_vert: Box<dyn Shader>, _a_shader_frag: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>{
     return Err(RendererError::Unimplemented)
   }
 
@@ -209,11 +207,11 @@ impl Renderer for RendererDirectX12 {
     })
   }
 
-  fn gen_buffer_vertex(&mut self, a_verts: &std::vec::Vec<f32>) -> Box<dyn Vertices>{
+  fn gen_buffer_vertex(&mut self, _a_verts: &std::vec::Vec<f32>) -> Box<dyn Vertices>{
     Box::new(VerticesDirectX12{})
   }
 
-  fn gen_geometry(&mut self, a_buffer: &Box<dyn Vertices>) -> Box<dyn Geometry>{
+  fn gen_geometry(&mut self, _a_buffer: &Box<dyn Vertices>) -> Box<dyn Geometry>{
     Box::new(GeometryDirectX12{})
   }
 
@@ -234,19 +232,19 @@ impl Renderer for RendererDirectX12 {
     Box::new(SamplerDirectX12{name: String::from(""), texture: a_texture})
   }
 
-  fn load_texture(&mut self, a_image: &image::DynamicImage, a_texture: &mut Box<dyn Texture>){
+  fn load_texture(&mut self, _a_image: &image::DynamicImage, a_texture: &mut Box<dyn Texture>){
 
   }
 
-  fn use_program(&mut self, a_program: &Box<dyn Program>){
+  fn use_program(&mut self, _a_program: &Box<dyn Program>){
 
   }
 
-  fn draw_geometry(&mut self, a_geometry: &Box<dyn Geometry>){
+  fn draw_geometry(&mut self, _a_geometry: &Box<dyn Geometry>){
 
   }
 
-  fn draw_mesh(&mut self, a_camera: &Camera, a_mesh: &mut Box<Mesh>){
+  fn draw_mesh(&mut self, _a_camera: &Camera, _a_mesh: &mut Box<Mesh>){
 
   }
 }
