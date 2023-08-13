@@ -4,6 +4,7 @@ extern crate gl;
 
 use std::ffi::{CString};
 use std::rc::Rc;
+use std::sync::Arc;
 use glam::*;
 
 use crate::gpu::renderer::*;
@@ -11,6 +12,8 @@ use crate::gpu::renderer_types::*;
 use crate::gpu::material::*;
 use crate::gpu::camera::*;
 use crate::gpu::uniforms::*;
+use crate::gui::window::Window;
+use crate::gpu::image::*;
 
 pub struct SamplerOpenGL{
   name: String,
@@ -158,6 +161,9 @@ impl UniformShader for UniformShaderOpenGL {
 pub struct RendererOpenGL {
   pub gl_context: sdl2::video::GLContext,
   pub version_major: i32,
+  pub version_minor: i32,
+
+  window: Arc<Window>,
 
   clear_color: Vec4,
   clear_depth: f32,
@@ -185,7 +191,7 @@ impl Renderer for RendererOpenGL {
   }
 
   fn end_frame(&mut self){
-    
+    self.window.window.lock().unwrap().inner.gl_swap_window();
   }
 
   //clear immediatly
@@ -209,11 +215,11 @@ impl Renderer for RendererOpenGL {
     }
   }
 
-  //Get and set clear values may be called before BeginFrame
+  // Get and set clear values may be called before BeginFrame
   fn set_clear_color(&mut self, a_color: Vec4){
     self.clear_color = a_color;
     unsafe {
-      gl::ClearColor(a_color.z, a_color.y, a_color.x, a_color.w);
+      gl::ClearColor(a_color.x, a_color.y, a_color.z, a_color.w);
     }
   }
 
@@ -616,6 +622,23 @@ impl Renderer for RendererOpenGL {
     }
   }
 
+  fn read_render_buffer(&mut self) -> Image {
+    let mut image = Image{
+      width: self.window.width, 
+      height: self.window.height, 
+      pitch: self.window.height * 4, 
+      pixels: vec![0u8; (self.window.width * self.window.height  * 4) as usize]};
+
+    unsafe { gl::ReadPixels( 
+      0, 0, 
+      self.window.width as i32, self.window.height as i32, 
+      gl::RGBA,
+      gl::UNSIGNED_BYTE,
+      image.pixels.as_mut_ptr() as *mut _) };
+    
+    return image
+  }
+
 }
 
 #[allow(dead_code)]
@@ -627,15 +650,15 @@ impl RendererOpenGL {
     a_video_subsystem: &sdl2::VideoSubsystem, 
     a_min_version: Version, 
     a_max_version: Version, 
-    a_window: &sdl2::video::Window, 
+    a_window: Arc<Window>, 
     a_is_gles: bool) -> Result<Self, RendererError>
   {
     let gl_context = match a_is_gles {
-      true => match init_gles_context(&a_video_subsystem, a_min_version, a_max_version, &a_window) {
+      true => match init_gles_context(&a_video_subsystem, a_min_version, a_max_version, &a_window.window.lock().unwrap().inner) {
         Ok(res) => res,
         Err(_res) => return Err(RendererError::Error)
       },
-      false => match init_gl_context(&a_video_subsystem, a_min_version, a_max_version, &a_window) {
+      false => match init_gl_context(&a_video_subsystem, a_min_version, a_max_version, &a_window.window.lock().unwrap().inner) {
         Ok(res) => res,
         Err(_res) => return Err(RendererError::Error)
       }
@@ -643,16 +666,18 @@ impl RendererOpenGL {
     
     gl::load_with(|s| a_video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
 
-    // swap interval requires emscripten main loop to be set first
-    #[cfg(not(target_os = "emscripten"))]
-    match a_video_subsystem.gl_set_swap_interval(sdl2::video::SwapInterval::Immediate){
-      Ok(_res) => _res,
-      Err(_res) => print!("Unable to set vsync\n")
-    };
+    // // swap interval requires emscripten main loop to be set first
+    // #[cfg(not(target_os = "emscripten"))]
+    // match a_video_subsystem.gl_set_swap_interval(sdl2::video::SwapInterval::Immediate){
+    //   Ok(_res) => _res,
+    //   Err(_res) => print!("Unable to set vsync\n")
+    // };
 
     Ok(Self {
       gl_context: gl_context,
+      window: a_window,
       version_major: 0,
+      version_minor: 0,
       clear_color: Vec4::new(0.0, 0.0, 0.0, 0.0),
       clear_depth: 1.0,
       clear_stencil: 0,

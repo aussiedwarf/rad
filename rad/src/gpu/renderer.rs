@@ -5,6 +5,7 @@ use crate::gpu::renderer_types::*;
 use crate::gpu::uniforms::*;
 use crate::gpu::material::*;
 use crate::gpu::camera::*;
+use crate::gpu::image::*;
 
 use glam::*;
 use std::rc::Rc;
@@ -56,12 +57,12 @@ pub trait Renderer {
 
   //Get and set clear values may be called before BeginFrame
 
-  //color bgra
+  // set clear color rgba
   fn set_clear_color(&mut self, a_color: Vec4);
   fn set_clear_depth(&mut self, a_depth: f32);
   fn set_clear_stencil(&mut self, a_stencil: i32);
 
-  //color bgra
+  //color rgba
   fn get_clear_color(&self) -> Vec4;
   fn get_clear_depth(&self) -> f32;
   fn get_clear_stencil(&self) -> i32;
@@ -98,6 +99,8 @@ pub trait Renderer {
 
   fn draw_geometry(&mut self, a_geometry: &Box<dyn Geometry>);
   fn draw_mesh(&mut self, a_camera: &Camera, a_mesh: &mut Box<Mesh>);
+
+  fn read_render_buffer(&mut self) -> Image;
 
   //fn gen_render_target
   //fn set_render_target

@@ -6,6 +6,7 @@ use crate::gpu::renderer_types::*;
 use crate::gpu::material::*;
 use crate::gpu::camera::*;
 use crate::gpu::uniforms::*;
+use crate::gpu::image::*;
 use std::rc::Rc;
 
 pub struct SamplerVulkan{
@@ -190,6 +191,10 @@ impl Renderer for RendererVulkan {
 
   fn draw_geometry(&mut self, _geometry: &Box<dyn Geometry>){}
   fn draw_mesh(&mut self, _camera: &Camera, _geometry: &mut Box<Mesh>){}
+
+  fn read_render_buffer(&mut self) -> Image{
+    return Image{width: 0, height: 0, pitch: 0, pixels: std::vec::Vec::<u8>::new()}
+  }
 }
 
 impl RendererVulkan{

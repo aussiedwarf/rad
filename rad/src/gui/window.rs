@@ -1,5 +1,6 @@
 
 extern crate sdl2;
+use crate::core::unsafe_send::UnsafeSend;
 use crate::gpu::renderer;
 use crate::gpu::renderer_types;
 use crate::gpu::opengl::renderer_opengl;
@@ -31,22 +32,6 @@ impl fmt::Display for WindowError {
   }
 }
 
-pub struct UnsafeSend<T>{
-  pub inner: T,
-}
-
-unsafe impl<T> Send for UnsafeSend<T> { }
-
-#[allow(dead_code)]
-impl<T> UnsafeSend<T> {
-  pub unsafe fn new(t: T) -> Self {
-      Self{ inner: t }
-  }
-  pub fn into_inner(self) -> T {
-      self.inner
-  }
-}
-
 #[allow(dead_code)]
 pub struct Window{
   active: bool,
@@ -64,7 +49,7 @@ pub struct Window{
 impl Window {
   pub fn new(
     a_renderer_type: renderer_types::RendererType, 
-    a_name: &str, a_width: u32, a_height: u32) -> Result<Window, WindowError> 
+    a_name: &str, a_width: u32, a_height: u32, a_x: i32, a_y: i32, a_flags: u32) -> Result<Window, WindowError> 
   {
     let sdl_context = match sdl2::init(){
       Ok(res) => res,
@@ -76,23 +61,11 @@ impl Window {
       Err(_res) => return Err(WindowError::SdlInitError)
     };
 
-    /*
-    let window: sdl2::video::Window = match video_subsystem.window("rust-sdl2 demo", width as u32, height as u32)
-      .position_centered()
-      .allow_highdpi()
-      .opengl()
-      .resizable()
-      .build() {
-        Ok(res) => res,
-        Err(res) => return Err(WindowError::SdlWindowError)
-      };
-      */
-
     let window = match a_renderer_type {
-      renderer_types::RendererType::OpenGL | renderer_types::RendererType::OpenGLES => Window::init_window_opengl(&video_subsystem, a_name, a_width as u32, a_height as u32),
-      renderer_types::RendererType::DirectX => Window::init_window(&video_subsystem, a_name, a_width as u32, a_height as u32),
-      renderer_types::RendererType::Vulkan => Window::init_window_vulkan(&video_subsystem, a_name, a_width as u32, a_height as u32),
-      _ => Window::init_window(&video_subsystem, a_name, a_width as u32, a_height as u32)
+      renderer_types::RendererType::OpenGL | renderer_types::RendererType::OpenGLES => Window::init_window_opengl(&video_subsystem, a_name, a_width as u32, a_height as u32, a_x, a_y, a_flags),
+      renderer_types::RendererType::DirectX => Window::init_window(&video_subsystem, a_name, a_width as u32, a_height as u32, a_x, a_y, a_flags),
+      renderer_types::RendererType::Vulkan => Window::init_window_vulkan(&video_subsystem, a_name, a_width as u32, a_height as u32, a_x, a_y, a_flags),
+      _ => Window::init_window(&video_subsystem, a_name, a_width as u32, a_height as u32, a_x, a_y, a_flags)
     };
       
     let window = match window {
@@ -140,7 +113,7 @@ impl Window {
     a_min_version: renderer_types::Version, 
     a_max_version: renderer_types::Version, 
     a_video_subsystem: &sdl2::VideoSubsystem, 
-    a_window: &sdl2::video::Window) -> Result<Box<dyn renderer::Renderer>, WindowError > 
+    a_window: Arc<Window>) -> Result<Box<dyn renderer::Renderer>, WindowError > 
   {
     let is_gles = a_renderer_type == renderer_types::RendererType::OpenGLES;
     match a_renderer_type {
@@ -154,7 +127,7 @@ impl Window {
     },
       renderer_types::RendererType::DirectX => 
       {
-      Ok(Box::new(match renderer_directx12::RendererDirectX12::new(a_video_subsystem, a_window){
+      Ok(Box::new(match renderer_directx12::RendererDirectX12::new(a_video_subsystem, &a_window.window.lock().unwrap().inner){
         Ok(res) => res,
         Err(_res) => return Err(WindowError::SdlRendererError)
       }
@@ -171,29 +144,26 @@ impl Window {
   }
 }
 
-fn init_window(a_video_subsystem: &sdl2::VideoSubsystem, a_name: &str, a_width: u32, a_height: u32) -> Result<sdl2::video::Window, sdl2::video::WindowBuildError> {
+fn init_window(a_video_subsystem: &sdl2::VideoSubsystem, a_name: &str, a_width: u32, a_height: u32, a_x: i32, a_y: i32, a_flags: u32) -> Result<sdl2::video::Window, sdl2::video::WindowBuildError> {
   a_video_subsystem.window(a_name, a_width, a_height)
-      .position_centered()
-      .allow_highdpi()
-      .resizable()
-      .build()
+    .position(a_x, a_y)
+    .set_window_flags(a_flags)
+    .build()
 }
 
-fn init_window_opengl(a_video_subsystem: &sdl2::VideoSubsystem, a_name: &str, a_width: u32, a_height: u32) -> Result<sdl2::video::Window, sdl2::video::WindowBuildError> {
+fn init_window_opengl(a_video_subsystem: &sdl2::VideoSubsystem, a_name: &str, a_width: u32, a_height: u32, a_x: i32, a_y: i32, a_flags: u32) -> Result<sdl2::video::Window, sdl2::video::WindowBuildError> {
   a_video_subsystem.window(a_name, a_width, a_height)
-      .position_centered()
-      .allow_highdpi()
-      .resizable()
-      .opengl()
-      .build()
+    .position(a_x, a_y)
+    .set_window_flags(a_flags)
+    .opengl()
+    .build()
 }
 
-fn init_window_vulkan(a_video_subsystem: &sdl2::VideoSubsystem, a_name: &str, a_width: u32, a_height: u32) -> Result<sdl2::video::Window, sdl2::video::WindowBuildError> {
+fn init_window_vulkan(a_video_subsystem: &sdl2::VideoSubsystem, a_name: &str, a_width: u32, a_height: u32, a_x: i32, a_y: i32, a_flags: u32) -> Result<sdl2::video::Window, sdl2::video::WindowBuildError> {
   a_video_subsystem.window(a_name, a_width, a_height)
-      .position_centered()
-      .allow_highdpi()
-      .resizable()
-      .vulkan()
-      .build()
+    .position(a_x, a_y)
+    .set_window_flags(a_flags)
+    .vulkan()
+    .build()
 }
 }

@@ -6,6 +6,7 @@ use crate::gpu::material::*;
 use crate::gpu::camera::*;
 use crate::gpu::uniforms::*;
 use crate::gpu::directx::renderer_common::*;
+use crate::gpu::image::*;
 
 use std::result::Result;
 use std::rc::Rc;
@@ -246,6 +247,10 @@ impl Renderer for RendererDirectX12 {
 
   fn draw_mesh(&mut self, _a_camera: &Camera, _a_mesh: &mut Box<Mesh>){
 
+  }
+
+  fn read_render_buffer(&mut self) -> Image{
+    return Image{width: 0, height: 0, pitch: 0, pixels: std::vec::Vec::<u8>::new()}
   }
 }
 

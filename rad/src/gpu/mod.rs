@@ -6,3 +6,4 @@ pub mod renderer_types;
 pub mod opengl;
 pub mod vulkan;
 pub mod directx;
+pub mod image;
