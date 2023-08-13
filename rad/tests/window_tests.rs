@@ -105,7 +105,8 @@ fn init_renderer(
   
   for major_version in 1..=a_max_version_major{
     for minor_version in 0..=minor_versions[(major_version-1) as usize]{
-      let window_result = Window::new(a_renderer_type, "Test", 240, 160, 0, 0, 
+      // keep window offset so that it is not covered by a OS menu
+      let window_result = Window::new(a_renderer_type, "Test", 240, 160, 120, 120, 
         sdl2::sys::SDL_WindowFlags::SDL_WINDOW_BORDERLESS as u32 | sdl2::sys::SDL_WindowFlags::SDL_WINDOW_ALLOW_HIGHDPI as u32);
         
       assert!(window_result.is_ok(), "window creation failed");
@@ -187,7 +188,8 @@ fn test_clear_screen(window:Arc<Window>, renderer: &mut Box<dyn Renderer>){
   renderer.end_frame();
   let screen = Screen::from_point(0,0).unwrap();
 
-  let capture = screen.capture_area(0,0,window.width,window.height).unwrap();
+  // keep window offset so that it is not covered by a OS menu
+  let capture = screen.capture_area(120,120,window.width,window.height).unwrap();
 
   // let buffer = capture.to_png(Compression::Best).unwrap();
   // std::fs::write("capture_display_with_point.png", buffer).unwrap();
