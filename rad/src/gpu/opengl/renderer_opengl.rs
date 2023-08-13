@@ -648,12 +648,12 @@ impl RendererOpenGL {
     
     gl::load_with(|s| a_video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
 
-    // swap interval requires emscripten main loop to be set first
-    #[cfg(not(target_os = "emscripten"))]
-    match a_video_subsystem.gl_set_swap_interval(sdl2::video::SwapInterval::Immediate){
-      Ok(_res) => _res,
-      Err(_res) => print!("Unable to set vsync\n")
-    };
+    // // swap interval requires emscripten main loop to be set first
+    // #[cfg(not(target_os = "emscripten"))]
+    // match a_video_subsystem.gl_set_swap_interval(sdl2::video::SwapInterval::Immediate){
+    //   Ok(_res) => _res,
+    //   Err(_res) => print!("Unable to set vsync\n")
+    // };
 
     Ok(Self {
       gl_context: gl_context,
