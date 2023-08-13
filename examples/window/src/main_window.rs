@@ -40,7 +40,7 @@ impl Renderer {
       renderer_types::Version{major: renderer_types::VersionNum::Lowest, minor: renderer_types::VersionNum::Lowest, patch: renderer_types::VersionNum::Lowest},
       renderer_types::Version{major: renderer_types::VersionNum::Highest, minor: renderer_types::VersionNum::Highest, patch: renderer_types::VersionNum::Highest},
       &(window.video_subsystem.lock().unwrap()).inner,
-      &(window.window.lock().unwrap()).inner)
+      window.clone())
     {
       Ok(res) => res,
       Err(_res) => panic!("Error creating renderer")
@@ -159,10 +159,6 @@ impl Renderer {
     self.renderer.draw_mesh(&self.camera, &mut self.mesh);
 
     self.renderer.end_frame();
-    
-    self.window.window.lock().unwrap().inner.gl_swap_window();
-    //self.canvas.present();
-    //std::thread::sleep(Duration::new(0, 1_000_000_000u32 / 60));
   }
 }
 
@@ -183,7 +179,10 @@ pub struct MainWindow{
 impl MainWindow {
   pub fn new(a_renderer_type: renderer_types::RendererType) -> Result<MainWindow, WindowError> {
 
-    match Window::new(a_renderer_type, "Title", 800, 600){
+    match Window::new(a_renderer_type, "Title", 800, 600, 
+      sdl2::sys::SDL_WINDOWPOS_CENTERED_MASK as i32, sdl2::sys::SDL_WINDOWPOS_CENTERED_MASK as i32, 
+      sdl2::sys::SDL_WindowFlags::SDL_WINDOW_RESIZABLE as u32 | sdl2::sys::SDL_WindowFlags::SDL_WINDOW_ALLOW_HIGHDPI as u32)
+    {
       Ok(res) => return Ok(MainWindow{
         window: Arc::new(res), 
         renderer: None,
