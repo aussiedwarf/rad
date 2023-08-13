@@ -5,6 +5,7 @@ use crate::gpu::renderer_types::*;
 use crate::gpu::uniforms::*;
 use crate::gpu::material::*;
 use crate::gpu::camera::*;
+use crate::gpu::image::*;
 
 use glam::*;
 use std::rc::Rc;
@@ -98,6 +99,8 @@ pub trait Renderer {
 
   fn draw_geometry(&mut self, a_geometry: &Box<dyn Geometry>);
   fn draw_mesh(&mut self, a_camera: &Camera, a_mesh: &mut Box<Mesh>);
+
+  fn read_render_buffer(&mut self) -> Image;
 
   //fn gen_render_target
   //fn set_render_target

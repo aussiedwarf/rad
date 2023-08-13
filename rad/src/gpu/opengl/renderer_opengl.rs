@@ -13,6 +13,7 @@ use crate::gpu::material::*;
 use crate::gpu::camera::*;
 use crate::gpu::uniforms::*;
 use crate::gui::window::Window;
+use crate::gpu::image::*;
 
 pub struct SamplerOpenGL{
   name: String,
@@ -619,6 +620,23 @@ impl Renderer for RendererOpenGL {
         geometry.num // number of indices to be rendered
       );
     }
+  }
+
+  fn read_render_buffer(&mut self) -> Image {
+    let mut image = Image{
+      width: self.window.width, 
+      height: self.window.height, 
+      pitch: self.window.height * 4, 
+      pixels: vec![0u8; (self.window.width * self.window.height  * 4) as usize]};
+
+    unsafe { gl::ReadPixels( 
+      0, 0, 
+      self.window.width as i32, self.window.height as i32, 
+      gl::RGBA,
+      gl::UNSIGNED_BYTE,
+      image.pixels.as_mut_ptr() as *mut _) };
+    
+    return image
   }
 
 }

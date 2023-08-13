@@ -3,7 +3,6 @@ use rad::gpu::renderer_types;
 use rad::gpu::renderer::*;
 use rad::gui::window::Window;
 use std::env;
-use screenshots::{Screen, Compression};
 use std::panic::{self, AssertUnwindSafe};
 
 use glam::*;
@@ -63,7 +62,9 @@ fn create_window() {
 
   for renderer_type in renderer_types
   {
-    let window_result = Window::new(renderer_type, "Test", 240, 160, 0, 0, 
+    let window_result = Window::new(
+      renderer_type, "Test", 240, 160,
+      sdl2::sys::SDL_WINDOWPOS_CENTERED_MASK as i32, sdl2::sys::SDL_WINDOWPOS_CENTERED_MASK as i32, 
       sdl2::sys::SDL_WindowFlags::SDL_WINDOW_BORDERLESS as u32 | sdl2::sys::SDL_WindowFlags::SDL_WINDOW_ALLOW_HIGHDPI as u32);
       
     assert!(window_result.is_ok(), "window creation failed");
@@ -105,8 +106,10 @@ fn init_renderer(
   
   for major_version in 1..=a_max_version_major{
     for minor_version in 0..=minor_versions[(major_version-1) as usize]{
-      // keep window offset so that it is not covered by a OS menu
-      let window_result = Window::new(a_renderer_type, "Test", 240, 160, 120, 120, 
+      
+      let window_result = Window::new(
+        a_renderer_type, "Test", 240, 160, 
+        sdl2::sys::SDL_WINDOWPOS_CENTERED_MASK as i32, sdl2::sys::SDL_WINDOWPOS_CENTERED_MASK as i32,
         sdl2::sys::SDL_WindowFlags::SDL_WINDOW_BORDERLESS as u32 | sdl2::sys::SDL_WindowFlags::SDL_WINDOW_ALLOW_HIGHDPI as u32);
         
       assert!(window_result.is_ok(), "window creation failed");
@@ -178,25 +181,20 @@ fn mean_square_error(buffer: &Vec<u8>, color: [u8; 4]) -> f64{
   return diff as f64 / buffer.len() as f64;
 }
 
-fn test_clear_screen(window:Arc<Window>, renderer: &mut Box<dyn Renderer>){
+fn test_clear_screen(_window:Arc<Window>, renderer: &mut Box<dyn Renderer>){
   let color = [191, 127, 63, 255 ];
   
   renderer.set_clear_color(Vec4::new(color[0] as f32 / 255.0, color[1] as f32 / 255.0, color[2] as f32 / 255.0, color[3] as f32 / 255.0));
 
   renderer.begin_frame(renderer_types::RendererClearType::COLOR);
 
+  let image = renderer.read_render_buffer();
+
   renderer.end_frame();
-  let screen = Screen::from_point(0,0).unwrap();
 
-  // keep window offset so that it is not covered by a OS menu
-  let capture = screen.capture_area(120,120,window.width,window.height).unwrap();
+  let mse = mean_square_error(image.pixels.as_ref(), color);
 
-  // let buffer = capture.to_png(Compression::Best).unwrap();
-  // std::fs::write("capture_display_with_point.png", buffer).unwrap();
-
-  let mse = mean_square_error(capture.rgba(), color);
-
-  assert!(mse <= 1.0, "Clear color is not within tollerance. MSE: {}", mse);
+  assert!(mse <= 1.0, "Clear color is not within tolerance. MSE: {}", mse);
 }
 
 fn clear_screen() {
