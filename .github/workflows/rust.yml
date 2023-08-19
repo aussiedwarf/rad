@@ -26,6 +26,26 @@ jobs:
       run: cargo build --verbose --release
     - name: Run Tests
       run: cargo test
+  build-raspberrypios-arm64:
+    runs-on: [self-hosted, Linux, ARM64]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build Debug
+      run: cargo build --verbose
+    - name: Build Release
+      run: cargo build --verbose --release
+    - name: Run Tests
+      run: cargo test
+  build-raspberrypios-arm:
+    runs-on: [self-hosted, Linux, ARM]
+    steps:
+    - uses: actions/checkout@v3
+    - name: Build Debug
+      run: cargo build -j 1 --verbose
+    - name: Build Release
+      run: cargo build -j 1 --verbose --release
+    - name: Run Tests
+      run: cargo test -j 1
   build-windows10-x64:
     runs-on: [self-hosted, Windows, X64]
     steps:
