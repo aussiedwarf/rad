@@ -31,7 +31,7 @@ impl VulkanInstance{
     extensions.push("VK_KHR_surface");
     #[cfg(windows)]
     extensions.push("VK_KHR_win32_surface");
-    #[cfg(linux)]
+    #[cfg(target_os = "linux")]
     extensions.push("VK_KHR_xlib_surface");
 
     match VulkanInstance::check_instance_extension_support(a_entry, &extensions){
