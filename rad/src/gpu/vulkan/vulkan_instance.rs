@@ -27,10 +27,12 @@ impl VulkanInstance{
     };
 
     let mut extensions = std::vec::Vec::<&str>::new();
-    
+
     extensions.push("VK_KHR_surface");
     #[cfg(windows)]
     extensions.push("VK_KHR_win32_surface");
+    #[cfg(linux)]
+    extensions.push("VK_KHR_xlib_surface");
 
     match VulkanInstance::check_instance_extension_support(a_entry, &extensions){
       false => return Err(RendererError::Error),
