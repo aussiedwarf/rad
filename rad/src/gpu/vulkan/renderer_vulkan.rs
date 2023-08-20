@@ -1,13 +1,16 @@
-
+use ash::{vk, Entry};
 use glam::*;
 
+use crate::gpu::vulkan::vulkan_instance::*;
 use crate::gpu::renderer::*;
 use crate::gpu::renderer_types::*;
 use crate::gpu::material::*;
 use crate::gpu::camera::*;
 use crate::gpu::uniforms::*;
 use crate::gpu::image::*;
+use std::ffi::{CString, CStr};
 use std::rc::Rc;
+use libc::{c_char};
 
 pub struct SamplerVulkan{
   name: String,
@@ -97,10 +100,14 @@ impl UniformShader for UniformShaderVulkan {
 
 pub struct RendererVulkan {
   pub version_major: i32,
+  pub version_minor: i32,
+  pub version_patch: i32,
 
   clear_color: Vec4,
   clear_depth: f32,
-  clear_stencil: i32
+  clear_stencil: i32,
+
+  instance: VulkanInstance
 }
 
 #[allow(dead_code)]
@@ -198,12 +205,52 @@ impl Renderer for RendererVulkan {
 }
 
 impl RendererVulkan{
-  pub fn new() -> Result<Self, RendererError>{
+  pub fn new(a_window: &sdl2::video::Window, a_enable_validation_layers: bool) -> Result<Self, RendererError>{
+    /*
+    let extensions = match a_window.vulkan_instance_extensions(){
+      Ok(res) => res,
+      Err(_res) => return Err(RendererError::Error)
+    };
+    */
+
+    let entry = unsafe { match Entry::load()  {
+      Ok(res) => res,
+      Err(_res) => return Err(RendererError::Error)
+    }};
+
+    let instance = match VulkanInstance::new(&entry, a_enable_validation_layers){
+      Ok(res) => res,
+      Err(_res) => return Err(RendererError::Error)
+    };
+    
+    let mut major = 1;
+    let mut minor = 0;
+    let mut patch = 0;
+    
+    match entry.try_enumerate_instance_version().unwrap() {
+      Some(version) => {
+        major = vk::api_version_major(version) as i32;
+        minor = vk::api_version_minor(version) as i32;
+        patch = vk::api_version_patch(version) as i32;
+      },
+      None => {},
+    };
+
     Ok(Self {
-      version_major: 0,
+      version_major: major,
+      version_minor: minor,
+      version_patch: patch,
       clear_color: Vec4::new(0.0, 0.0, 0.0, 0.0),
       clear_depth: 1.0,
-      clear_stencil: 0
+      clear_stencil: 0,
+      instance: instance
     })
+  }
+
+}
+
+impl Drop for RendererVulkan{
+  fn drop(&mut self){
+    
   }
 }

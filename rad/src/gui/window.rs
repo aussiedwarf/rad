@@ -119,7 +119,7 @@ impl Window {
     match a_renderer_type {
       renderer_types::RendererType::OpenGL | renderer_types::RendererType::OpenGLES => 
       {
-        Ok(Box::new(match renderer_opengl::RendererOpenGL::new(a_video_subsystem, a_min_version, a_max_version,  a_window, is_gles){
+        Ok(Box::new(match renderer_opengl::RendererOpenGL::new(a_video_subsystem, a_min_version, a_max_version, a_window, is_gles){
         Ok(res) => res,
         Err(res) => return Err(WindowError::SdlRendererError)
       }
@@ -135,7 +135,7 @@ impl Window {
     },
       renderer_types::RendererType::Vulkan => 
       {
-      Ok(Box::new( match renderer_vulkan::RendererVulkan::new(){
+      Ok(Box::new( match renderer_vulkan::RendererVulkan::new(&a_window.window.lock().unwrap().inner, true){
         Ok(res) => res,
         Err(_res) => return Err(WindowError::SdlRendererError)
       }))
