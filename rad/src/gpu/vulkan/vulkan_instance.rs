@@ -21,22 +21,29 @@ impl VulkanInstance{
       layers.push("VK_LAYER_KHRONOS_validation");
     }
 
-    match VulkanInstance::check_instance_layer_support(a_entry, &layers){
-      false => return Err(RendererError::Error),
-      true => {}
-    };
+    VulkanInstance::get_optional_instance_layers(a_entry, &mut layers);
 
     let mut extensions = std::vec::Vec::<&str>::new();
 
     extensions.push("VK_KHR_surface");
     #[cfg(windows)]
     extensions.push("VK_KHR_win32_surface");
-    #[cfg(target_os = "linux")]
-    extensions.push("VK_KHR_xlib_surface");
 
     match VulkanInstance::check_instance_extension_support(a_entry, &extensions){
       false => return Err(RendererError::Error),
       true => {}
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+      let mut linux_extensions = std::vec!["VK_KHR_xlib_surface", "VK_KHR_wayland_surface"];
+      VulkanInstance::get_optional_instance_extensions(a_entry, &mut linux_extensions);
+
+      if linux_extensions.len() == 0{
+        return Err(RendererError::Error)
+      }
+
+      extensions.append(&mut linux_extensions);
     }
 
     let (_layer_names, layer_names_ptrs) = VulkanInstance::get_names_and_pointers(&layers);
@@ -59,6 +66,54 @@ impl VulkanInstance{
     println!("Instance created");
 
     Ok(VulkanInstance{instance: instance})
+  }
+
+  fn get_optional_instance_extensions(a_entry: &Entry, a_extensions: &mut std::vec::Vec<&str>) {
+    let mut extensions = std::vec::Vec::<&str>::new();
+    let properties: Vec<vk::ExtensionProperties> = a_entry.enumerate_instance_extension_properties(None).unwrap();
+    
+    for extension in a_extensions.iter() {
+      let found = properties
+        .iter()
+        .any(|ext| {
+          let name = unsafe { CStr::from_ptr(ext.extension_name.as_ptr()) };
+          let name = name.to_str().expect("Failed to get extension name pointer");
+          extension == &name
+        });
+
+      if found {
+        extensions.push(extension);
+      }
+    }
+
+    a_extensions.clear();
+    for extension in extensions.iter() {
+      a_extensions.push(extension);
+    }
+  }
+
+  fn get_optional_instance_layers(a_entry: &Entry, a_layers: &mut std::vec::Vec<&str>) {
+    let mut layers = std::vec::Vec::<&str>::new();
+    let properties = a_entry.enumerate_instance_layer_properties().unwrap();
+    
+    for prop in a_layers.iter() {
+      let found = properties
+        .iter()
+        .any(|layer| {
+          let name = unsafe { CStr::from_ptr(layer.layer_name.as_ptr()) };
+          let name = name.to_str().expect("Failed to get layer name pointer");
+          prop == &name
+        });
+
+      if found {
+        layers.push(prop);
+      }
+    }
+
+    a_layers.clear();
+    for layer in layers.iter() {
+      a_layers.push(layer);
+    }
   }
 
   // Get the pointers to the validation layers names.
