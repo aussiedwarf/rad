@@ -56,11 +56,14 @@ impl Tests{
 }
 
 fn create_window() { 
-  let renderer_types = [
+  let mut renderer_types = std::vec![
     renderer_types::RendererType::OpenGL,
     renderer_types::RendererType::OpenGLES,
-    renderer_types::RendererType::Vulkan,
     ];
+
+  if get_env_version("VULKAN_MAJOR").is_some() {
+    renderer_types.push(renderer_types::RendererType::Vulkan);
+  }
 
   for renderer_type in renderer_types
   {
