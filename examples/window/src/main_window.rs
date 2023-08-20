@@ -47,7 +47,7 @@ impl Renderer {
     };
 
     let shader_path = match window.renderer_type {
-      renderer_types::RendererType::OpenGL => "shaders/gl/",
+      renderer_types::RendererType::OpenGL | renderer_types::RendererType::Vulkan => "shaders/gl/",
       renderer_types::RendererType::OpenGLES => "shaders/gles/",
       _ => "shaders/"
     };
@@ -166,9 +166,7 @@ pub struct MainWindow{
   window: Arc<Window>,
   renderer: Option<Renderer>,
 
-  running_events: Arc<AtomicBool>,
-  running_logic: Arc<AtomicBool>,
-  running_render: Arc<AtomicBool>,
+  running: Arc<AtomicBool>,
 
   thread_logic: Option<thread::JoinHandle<()>>,
   thread_render: Option<thread::JoinHandle<()>>,
@@ -186,9 +184,7 @@ impl MainWindow {
       Ok(res) => return Ok(MainWindow{
         window: Arc::new(res), 
         renderer: None,
-        running_events: Arc::new(AtomicBool::new(true)),
-        running_logic: Arc::new(AtomicBool::new(true)),
-        running_render: Arc::new(AtomicBool::new(true)),
+        running: Arc::new(AtomicBool::new(true)),
         thread_logic: None,
         thread_render: None
       }),
@@ -198,13 +194,13 @@ impl MainWindow {
 
   #[cfg(not(target_os = "emscripten"))]
   pub fn init_threads(&mut self) {
-    let running_logic = Arc::clone(&self.running_events);
+    let running_logic = Arc::clone(&self.running);
 
     self.thread_logic = Some(thread::spawn(move|| {
       MainWindow::run_logic_loop(running_logic);
     }));
 
-    let running_render = Arc::clone(&self.running_events);
+    let running_render = Arc::clone(&self.running);
     let window = Arc::clone(&self.window);
 
     self.thread_render = Some(thread::spawn(move|| {
@@ -228,7 +224,10 @@ impl MainWindow {
   pub fn run_render_loop(running: Arc<AtomicBool>, window: Arc<Window>) {
     let mut renderer = match Renderer::new(window){
       Ok(res) => res,
-      Err(_res) => return
+      Err(_res) => {
+        running.store(false, Ordering::SeqCst);
+        return
+      }
     };
 
     // let mut i = 0;
@@ -244,9 +243,6 @@ impl MainWindow {
   #[cfg(not(target_os = "emscripten"))]
   pub fn init(&mut self) {
     self.init_threads();
-
-
-    
   }
 
   #[cfg(target_os = "emscripten")]
@@ -273,14 +269,20 @@ impl MainWindow {
       }
     }
 
+    if !self.running.load(Ordering::SeqCst) {
+      return false
+    }
+
     return true
+  }
+
+  pub fn signal_quit(&mut self) {
+    self.running.store(false, Ordering::SeqCst);
   }
 
   #[cfg(not(target_os = "emscripten"))]
   fn end(&mut self){
-    self.running_events.store(false, Ordering::SeqCst);
-    self.running_logic.store(false, Ordering::SeqCst);
-    self.running_render.store(false, Ordering::SeqCst);
+    self.signal_quit();
 
     self.thread_logic.take().unwrap().join().unwrap();
     self.thread_render.take().unwrap().join().unwrap();
@@ -288,11 +290,12 @@ impl MainWindow {
 
 }
 
-impl MainLoop for MainWindow{
+impl MainLoop for MainWindow {
 
   #[cfg(not(target_os = "emscripten"))]
   fn main_loop(&mut self) -> MainLoopEvent{
     if !self.run_events() {
+      self.signal_quit();
       return MainLoopEvent::Terminate
     }
     std::thread::sleep(Duration::new(0, 1));
@@ -302,6 +305,7 @@ impl MainLoop for MainWindow{
   #[cfg(target_os = "emscripten")]
   fn main_loop(&mut self) -> MainLoopEvent{
     if !self.run_events() {
+      self.signal_quit();
       return MainLoopEvent::Terminate
     }
     else {
