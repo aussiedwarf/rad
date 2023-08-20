@@ -1,7 +1,10 @@
 use ash::{vk, Entry};
+use ash::vk::Handle;
 use glam::*;
+use sdl2::video::VkSurfaceKHR;
 
-use crate::gpu::vulkan::vulkan_instance::*;
+use crate::gpu::vulkan::vulkan_instance::VulkanInstance;
+use crate::gpu::vulkan::vulkan_surface::VulkanSurface;
 use crate::gpu::renderer::*;
 use crate::gpu::renderer_types::*;
 use crate::gpu::material::*;
@@ -107,7 +110,8 @@ pub struct RendererVulkan {
   clear_depth: f32,
   clear_stencil: i32,
 
-  instance: VulkanInstance
+  surface: VulkanSurface,
+  instance: VulkanInstance,
 }
 
 #[allow(dead_code)]
@@ -222,7 +226,7 @@ impl RendererVulkan{
       Ok(res) => res,
       Err(_res) => return Err(RendererError::Error)
     };
-    
+
     let mut major = 1;
     let mut minor = 0;
     let mut patch = 0;
@@ -236,6 +240,11 @@ impl RendererVulkan{
       None => {},
     };
 
+    let surface = match VulkanSurface::new(a_window, &entry, &instance) {
+      Ok(res) => res,
+      Err(_res) => return Err(RendererError::Error)
+    };
+
     Ok(Self {
       version_major: major,
       version_minor: minor,
@@ -243,7 +252,8 @@ impl RendererVulkan{
       clear_color: Vec4::new(0.0, 0.0, 0.0, 0.0),
       clear_depth: 1.0,
       clear_stencil: 0,
-      instance: instance
+      surface: surface,
+      instance: instance,
     })
   }
 

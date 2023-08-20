@@ -121,7 +121,7 @@ impl Window {
       {
         Ok(Box::new(match renderer_opengl::RendererOpenGL::new(a_video_subsystem, a_min_version, a_max_version, a_window, is_gles){
         Ok(res) => res,
-        Err(res) => return Err(WindowError::SdlRendererError)
+        Err(_res) => return Err(WindowError::SdlRendererError)
       }
       ))
     },
