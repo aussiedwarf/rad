@@ -13,6 +13,7 @@ fn main() {
   tests.run("create_window", create_window);
   tests.run("init_opengl", init_opengl);
   tests.run("init_opengles", init_opengles);
+  tests.run("init_vulkan", init_vulkan);
   tests.run("clear_screen", clear_screen);
 
   println!("\nTest Results:");
@@ -57,7 +58,8 @@ impl Tests{
 fn create_window() { 
   let renderer_types = [
     renderer_types::RendererType::OpenGL,
-    renderer_types::RendererType::OpenGLES
+    renderer_types::RendererType::OpenGLES,
+    renderer_types::RendererType::Vulkan,
     ];
 
   for renderer_type in renderer_types
@@ -157,12 +159,29 @@ fn test_opengles(function: fn(Arc<Window>, &mut Box<dyn Renderer>)) {
   init_renderer(renderer, &minor_versions, version.0, version.1, function);
 }
 
+fn test_vulkan(function: fn(Arc<Window>, &mut Box<dyn Renderer>)){
+  let renderer = renderer_types::RendererType::Vulkan;
+
+  let version = match get_api_supported(renderer.to_string().to_uppercase().as_str()){
+    Some(res) => res,
+    None => return
+  };
+
+  let minor_versions = vec![3];
+
+  init_renderer(renderer, &minor_versions, version.0, version.1, function);
+}
+
 fn init_opengl() { 
   test_opengl(do_nothing);
 }
 
 fn init_opengles() { 
   test_opengles(do_nothing);
+}
+
+fn init_vulkan() { 
+  test_vulkan(do_nothing);
 }
 
 fn squared(num: i32) -> i64{
@@ -200,4 +219,5 @@ fn test_clear_screen(_window:Arc<Window>, renderer: &mut Box<dyn Renderer>){
 fn clear_screen() {
   test_opengl(test_clear_screen);
   test_opengles(test_clear_screen);
+  //test_vulkan(test_clear_screen);
 }
