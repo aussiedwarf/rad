@@ -3,6 +3,7 @@ use ash::vk::Handle;
 use glam::*;
 use sdl2::video::VkSurfaceKHR;
 
+use crate::gpu::vulkan::vulkan_device::{VulkanPhysicalDevice, VulkanLogicalDevice};
 use crate::gpu::vulkan::vulkan_instance::VulkanInstance;
 use crate::gpu::vulkan::vulkan_surface::VulkanSurface;
 use crate::gpu::renderer::*;
@@ -110,6 +111,9 @@ pub struct RendererVulkan {
   clear_depth: f32,
   clear_stencil: i32,
 
+  // Order matters here so that instance is destroyed last
+  logical_device: VulkanLogicalDevice,
+  physical_device: VulkanPhysicalDevice,
   surface: VulkanSurface,
   instance: VulkanInstance,
 }
@@ -245,6 +249,16 @@ impl RendererVulkan{
       Err(_res) => return Err(RendererError::Error)
     };
 
+    let physical_device = match VulkanPhysicalDevice::new(&instance){
+      Ok(res) => res,
+      Err(_res) => return Err(RendererError::Error)
+    };
+
+    let logical_device = match VulkanLogicalDevice::new(&instance, &physical_device){
+      Ok(res) => res,
+      Err(_res) => return Err(RendererError::Error)
+    };
+
     Ok(Self {
       version_major: major,
       version_minor: minor,
@@ -252,6 +266,8 @@ impl RendererVulkan{
       clear_color: Vec4::new(0.0, 0.0, 0.0, 0.0),
       clear_depth: 1.0,
       clear_stencil: 0,
+      logical_device: logical_device,
+      physical_device: physical_device,
       surface: surface,
       instance: instance,
     })
