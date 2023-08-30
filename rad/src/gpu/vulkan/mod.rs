@@ -1,3 +1,4 @@
+pub mod image_view;
 pub mod renderer_vulkan;
 pub mod vulkan_device;
 pub mod vulkan_instance;

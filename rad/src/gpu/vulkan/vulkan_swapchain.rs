@@ -3,8 +3,10 @@ use crate::gpu::renderer_types::RendererError;
 use super::vulkan_surface::VulkanSurface;
 use super::vulkan_instance::VulkanInstance;
 use super::vulkan_device::{VulkanPhysicalDevice, VulkanLogicalDevice};
+use super::image_view::ImageView;
 
 pub struct Swapchain{
+  pub image_views: Vec<ImageView>,
   pub swapchain: ash::vk::SwapchainKHR,
   pub swapchain_loader: ash::extensions::khr::Swapchain,
   pub swapchain_images: Vec<ash::vk::Image>,
@@ -15,7 +17,6 @@ pub struct Swapchain{
 impl Swapchain{
   pub fn new(
     a_logical_device: std::rc::Rc<VulkanLogicalDevice>,
-    a_entry: &ash::Entry,
     a_instance: &VulkanInstance, 
     a_surface: &VulkanSurface, 
     a_physical_device: &VulkanPhysicalDevice, 
@@ -80,7 +81,16 @@ impl Swapchain{
       Err(_res) => return Err(RendererError::Error)
     }};
 
+    let mut image_views = Vec::<ImageView>::new();
+    for &image in swapchain_images.iter(){
+      image_views.push(match ImageView::new(a_logical_device.clone(), &image, format.format){
+        Ok(res) => res,
+        Err(_res) => return Err(RendererError::Error)
+      });
+    }
+
     Ok(Swapchain{
+      image_views: image_views,
       swapchain: swapchain, 
       swapchain_loader: swapchain_loader, 
       swapchain_images: swapchain_images, 

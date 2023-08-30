@@ -266,7 +266,7 @@ impl RendererVulkan{
     let window_size = a_window.size();
     let extent = ash::vk::Extent2D{width: window_size.0, height: window_size.1};
 
-    let swapchain = match Swapchain::new(logical_device.clone(), &entry, &instance, &surface, &physical_device, extent){
+    let swapchain = match Swapchain::new(logical_device.clone(), &instance, &surface, &physical_device, extent){
       Ok(res) => res,
       Err(_res) => return Err(RendererError::Error)
     };
