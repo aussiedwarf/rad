@@ -1,8 +1,9 @@
 
-use std::ffi::{CString, CStr};
-use libc::{c_char};
+use std::ffi::{CStr};
 
 use crate::gpu::renderer_types::*;
+
+use super::util::get_names_and_pointers;
 
 use ash::{vk, Entry};
 
@@ -46,8 +47,8 @@ impl VulkanInstance{
       extensions.append(&mut linux_extensions);
     }
 
-    let (_layer_names, layer_names_ptrs) = VulkanInstance::get_names_and_pointers(&layers);
-    let (_extension_names, extension_names_ptrs) = VulkanInstance::get_names_and_pointers(&extensions);
+    let (_layer_names, layer_names_ptrs) = get_names_and_pointers(&layers);
+    let (_extension_names, extension_names_ptrs) = get_names_and_pointers(&extensions);
 
     let app_info = vk::ApplicationInfo::builder()
       .api_version(vk::make_api_version(0, 1, 0, 0))
@@ -114,20 +115,6 @@ impl VulkanInstance{
     for layer in layers.iter() {
       a_layers.push(layer);
     }
-  }
-
-  // Get the pointers to the validation layers names.
-  // Also return the corresponding `CString` to avoid dangling pointers.
-  fn get_names_and_pointers(a_layers: &std::vec::Vec<&str>) -> (Vec<CString>, Vec<*const c_char>) {
-    let layer_names = a_layers
-      .iter()
-      .map(|name| CString::new(*name).unwrap())
-      .collect::<Vec<_>>();
-    let layer_names_ptrs = layer_names
-      .iter()
-      .map(|name| name.as_ptr())
-      .collect::<Vec<_>>();
-    (layer_names, layer_names_ptrs)
   }
 
   fn check_instance_layer_support(a_entry: &Entry, a_layers: &std::vec::Vec<&str>) -> bool{

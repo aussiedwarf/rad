@@ -1,23 +1,27 @@
 use crate::gpu::renderer_types::RendererError;
-use crate::gpu::vulkan::vulkan_instance::VulkanInstance;
+use super::vulkan_instance::VulkanInstance;
+use super::util::get_names_and_pointers;
 
 use std::ffi::{CStr};
 
 pub struct VulkanLogicalDevice{
-  device: ash::Device
+  pub device: ash::Device
 }
 
 impl VulkanLogicalDevice{
-  pub fn new(a_instance: &VulkanInstance, a_physical_device: &VulkanPhysicalDevice) -> Result<VulkanLogicalDevice, RendererError> {
+  pub fn new(a_instance: &VulkanInstance, a_physical_device: &VulkanPhysicalDevice, a_extensions: &Vec<&str>) -> Result<Self, RendererError> {
     let queue_priorities = [1.0];
     
     let queue_info = [ash::vk::DeviceQueueCreateInfo::builder()
       .queue_family_index(a_physical_device.queue_family as u32)
       .queue_priorities(&queue_priorities)
       .build()];
+
+    let (_extension_names, extension_names_ptrs) = get_names_and_pointers(a_extensions);
     
     let create_info = ash::vk::DeviceCreateInfo::builder()
       .queue_create_infos(&queue_info)
+      .enabled_extension_names(&extension_names_ptrs)
       .build();
     let device = unsafe { match a_instance.instance.create_device(a_physical_device.device, &create_info, None){
       Ok(res) => res,
@@ -35,20 +39,18 @@ impl Drop for VulkanLogicalDevice{
 }
 
 pub struct VulkanPhysicalDevice{
-  device: ash::vk::PhysicalDevice,
-  queue_family: usize
+  pub device: ash::vk::PhysicalDevice,
+  pub queue_family: usize
 }
 
 impl VulkanPhysicalDevice{
-  pub fn new(a_instance: &VulkanInstance) -> Result<VulkanPhysicalDevice, RendererError> {
+  pub fn new(a_instance: &VulkanInstance, a_extensions: &Vec<&str>) -> Result<Self, RendererError> {
     let devices = unsafe { match a_instance.instance.enumerate_physical_devices() {
       Ok(res) => res,
       Err(_res) => return Err(RendererError::Error)
     }};
 
-    let extensions = std::vec!["VK_KHR_swapchain"];
-
-    let device = match VulkanPhysicalDevice::select_device_type(a_instance, &devices, &extensions){
+    let device = match VulkanPhysicalDevice::select_device_type(a_instance, &devices, a_extensions){
       Some(res) => res,
       None => return Err(RendererError::Error)
     };

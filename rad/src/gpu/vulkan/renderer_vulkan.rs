@@ -2,18 +2,19 @@ use ash::{vk, Entry};
 use ash::vk::Handle;
 use glam::*;
 use sdl2::video::VkSurfaceKHR;
+use std::ffi::{CString, CStr};
+use std::rc::Rc;
 
 use crate::gpu::vulkan::vulkan_device::{VulkanPhysicalDevice, VulkanLogicalDevice};
 use crate::gpu::vulkan::vulkan_instance::VulkanInstance;
 use crate::gpu::vulkan::vulkan_surface::VulkanSurface;
+use crate::gpu::vulkan::vulkan_swapchain::Swapchain;
 use crate::gpu::renderer::*;
 use crate::gpu::renderer_types::*;
 use crate::gpu::material::*;
 use crate::gpu::camera::*;
 use crate::gpu::uniforms::*;
 use crate::gpu::image::*;
-use std::ffi::{CString, CStr};
-use std::rc::Rc;
 use libc::{c_char};
 
 pub struct SamplerVulkan{
@@ -112,7 +113,8 @@ pub struct RendererVulkan {
   clear_stencil: i32,
 
   // Order matters here so that instance is destroyed last
-  logical_device: VulkanLogicalDevice,
+  swapchain: Swapchain,
+  logical_device: Rc<VulkanLogicalDevice>,
   physical_device: VulkanPhysicalDevice,
   surface: VulkanSurface,
   instance: VulkanInstance,
@@ -249,12 +251,22 @@ impl RendererVulkan{
       Err(_res) => return Err(RendererError::Error)
     };
 
-    let physical_device = match VulkanPhysicalDevice::new(&instance){
+    let extensions = std::vec!["VK_KHR_swapchain"];
+
+    let physical_device = match VulkanPhysicalDevice::new(&instance, &extensions){
       Ok(res) => res,
       Err(_res) => return Err(RendererError::Error)
     };
 
-    let logical_device = match VulkanLogicalDevice::new(&instance, &physical_device){
+    let logical_device = match VulkanLogicalDevice::new(&instance, &physical_device, &extensions){
+      Ok(res) => Rc::new(res),
+      Err(_res) => return Err(RendererError::Error)
+    };
+
+    let window_size = a_window.size();
+    let extent = ash::vk::Extent2D{width: window_size.0, height: window_size.1};
+
+    let swapchain = match Swapchain::new(logical_device.clone(), &entry, &instance, &surface, &physical_device, extent){
       Ok(res) => res,
       Err(_res) => return Err(RendererError::Error)
     };
@@ -266,6 +278,7 @@ impl RendererVulkan{
       clear_color: Vec4::new(0.0, 0.0, 0.0, 0.0),
       clear_depth: 1.0,
       clear_stencil: 0,
+      swapchain: swapchain,
       logical_device: logical_device,
       physical_device: physical_device,
       surface: surface,
