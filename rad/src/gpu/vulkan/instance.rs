@@ -7,11 +7,11 @@ use super::util::get_names_and_pointers;
 
 use ash::{vk, Entry};
 
-pub struct VulkanInstance{
+pub struct Instance{
   pub instance: ash::Instance
 }
 
-impl VulkanInstance{
+impl Instance{
   pub fn new(a_entry: &Entry, a_enable_validation_layers: bool) -> Result<Self, RendererError>{
     //let validation_layer_names: Vec<[i8, vk::constants::MAX_EXTENSION_NAME_SIZE]>;
 
@@ -22,7 +22,7 @@ impl VulkanInstance{
       layers.push("VK_LAYER_KHRONOS_validation");
     }
 
-    VulkanInstance::get_optional_instance_layers(a_entry, &mut layers);
+    Instance::get_optional_instance_layers(a_entry, &mut layers);
 
     let mut extensions = std::vec::Vec::<&str>::new();
 
@@ -30,7 +30,7 @@ impl VulkanInstance{
     #[cfg(windows)]
     extensions.push("VK_KHR_win32_surface");
 
-    match VulkanInstance::check_instance_extension_support(a_entry, &extensions){
+    match Instance::check_instance_extension_support(a_entry, &extensions){
       false => return Err(RendererError::Error),
       true => {}
     }
@@ -38,7 +38,7 @@ impl VulkanInstance{
     #[cfg(target_os = "linux")]
     {
       let mut linux_extensions = std::vec!["VK_KHR_xlib_surface", "VK_KHR_wayland_surface"];
-      VulkanInstance::get_optional_instance_extensions(a_entry, &mut linux_extensions);
+      Instance::get_optional_instance_extensions(a_entry, &mut linux_extensions);
 
       if linux_extensions.len() == 0{
         return Err(RendererError::Error)
@@ -66,7 +66,7 @@ impl VulkanInstance{
     }};
     println!("Instance created");
 
-    Ok(VulkanInstance{instance: instance})
+    Ok(Instance{instance: instance})
   }
 
   fn get_optional_instance_extensions(a_entry: &Entry, a_extensions: &mut std::vec::Vec<&str>) {
@@ -158,7 +158,7 @@ impl VulkanInstance{
   }
 }
 
-impl Drop for VulkanInstance{
+impl Drop for Instance{
   fn drop(&mut self){
     unsafe { self.instance.destroy_instance(None) };
   }

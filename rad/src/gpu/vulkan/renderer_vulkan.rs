@@ -1,14 +1,12 @@
 use ash::{vk, Entry};
-use ash::vk::Handle;
 use glam::*;
 use sdl2::video::VkSurfaceKHR;
-use std::ffi::{CString, CStr};
 use std::rc::Rc;
 
-use crate::gpu::vulkan::vulkan_device::{VulkanPhysicalDevice, VulkanLogicalDevice};
-use crate::gpu::vulkan::vulkan_instance::VulkanInstance;
-use crate::gpu::vulkan::vulkan_surface::VulkanSurface;
-use crate::gpu::vulkan::vulkan_swapchain::Swapchain;
+use super::device::{PhysicalDevice, LogicalDevice};
+use super::swapchain::Swapchain;
+use super::instance::Instance;
+use super::surface::Surface;
 use crate::gpu::renderer::*;
 use crate::gpu::renderer_types::*;
 use crate::gpu::material::*;
@@ -114,10 +112,10 @@ pub struct RendererVulkan {
 
   // Order matters here so that instance is destroyed last
   swapchain: Swapchain,
-  logical_device: Rc<VulkanLogicalDevice>,
-  physical_device: VulkanPhysicalDevice,
-  surface: VulkanSurface,
-  instance: VulkanInstance,
+  logical_device: Rc<LogicalDevice>,
+  physical_device: PhysicalDevice,
+  surface: Surface,
+  instance: Instance,
 }
 
 #[allow(dead_code)]
@@ -228,7 +226,7 @@ impl RendererVulkan{
       Err(_res) => return Err(RendererError::Error)
     }};
 
-    let instance = match VulkanInstance::new(&entry, a_enable_validation_layers){
+    let instance = match Instance::new(&entry, a_enable_validation_layers){
       Ok(res) => res,
       Err(_res) => return Err(RendererError::Error)
     };
@@ -246,19 +244,19 @@ impl RendererVulkan{
       None => {},
     };
 
-    let surface = match VulkanSurface::new(a_window, &entry, &instance) {
+    let surface = match Surface::new(a_window, &entry, &instance) {
       Ok(res) => res,
       Err(_res) => return Err(RendererError::Error)
     };
 
     let extensions = std::vec!["VK_KHR_swapchain"];
 
-    let physical_device = match VulkanPhysicalDevice::new(&instance, &extensions){
+    let physical_device = match PhysicalDevice::new(&instance, &extensions){
       Ok(res) => res,
       Err(_res) => return Err(RendererError::Error)
     };
 
-    let logical_device = match VulkanLogicalDevice::new(&instance, &physical_device, &extensions){
+    let logical_device = match LogicalDevice::new(&instance, &physical_device, &extensions){
       Ok(res) => Rc::new(res),
       Err(_res) => return Err(RendererError::Error)
     };

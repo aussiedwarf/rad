@@ -1,8 +1,8 @@
 use crate::gpu::renderer_types::RendererError;
 
-use super::vulkan_surface::VulkanSurface;
-use super::vulkan_instance::VulkanInstance;
-use super::vulkan_device::{VulkanPhysicalDevice, VulkanLogicalDevice};
+use super::surface::Surface;
+use super::instance::Instance;
+use super::device::{PhysicalDevice, LogicalDevice};
 use super::image_view::ImageView;
 
 pub struct Swapchain{
@@ -10,16 +10,16 @@ pub struct Swapchain{
   pub swapchain: ash::vk::SwapchainKHR,
   pub swapchain_loader: ash::extensions::khr::Swapchain,
   pub swapchain_images: Vec<ash::vk::Image>,
-  pub logical_device: std::rc::Rc<VulkanLogicalDevice>,
+  pub logical_device: std::rc::Rc<LogicalDevice>,
   pub extent: ash::vk::Extent2D
 }
 
 impl Swapchain{
   pub fn new(
-    a_logical_device: std::rc::Rc<VulkanLogicalDevice>,
-    a_instance: &VulkanInstance, 
-    a_surface: &VulkanSurface, 
-    a_physical_device: &VulkanPhysicalDevice, 
+    a_logical_device: std::rc::Rc<LogicalDevice>,
+    a_instance: &Instance, 
+    a_surface: &Surface, 
+    a_physical_device: &PhysicalDevice, 
     a_extent: ash::vk::Extent2D) -> Result<Self, RendererError>{
     
     let surface_formats = unsafe { match a_surface.surface.get_physical_device_surface_formats(

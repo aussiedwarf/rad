@@ -1,13 +1,13 @@
 use crate::gpu::renderer_types::RendererError;
-use crate::gpu::vulkan::vulkan_device::VulkanLogicalDevice;
+use crate::gpu::vulkan::device::LogicalDevice;
 
 pub struct ImageView{
   view: ash::vk::ImageView,
-  logical_device: std::rc::Rc<VulkanLogicalDevice>
+  logical_device: std::rc::Rc<LogicalDevice>
 }
 
 impl ImageView{
-  pub fn new(a_logical_device: std::rc::Rc<VulkanLogicalDevice>, a_image: &ash::vk::Image, a_format: ash::vk::Format) -> Result<Self, RendererError>{
+  pub fn new(a_logical_device: std::rc::Rc<LogicalDevice>, a_image: &ash::vk::Image, a_format: ash::vk::Format) -> Result<Self, RendererError>{
 
     let create_info = ash::vk::ImageViewCreateInfo::builder()
       .image(*a_image)
