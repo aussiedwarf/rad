@@ -4,6 +4,7 @@ use sdl2::video::VkSurfaceKHR;
 use std::rc::Rc;
 
 use super::device::{PhysicalDevice, LogicalDevice};
+use super::render_pass::RenderPass;
 use super::swapchain::Swapchain;
 use super::instance::Instance;
 use super::surface::Surface;
@@ -112,6 +113,7 @@ pub struct RendererVulkan {
 
   // Order matters here so that instance is destroyed last
   swapchain: Swapchain,
+  render_pass: RenderPass,
   logical_device: Rc<LogicalDevice>,
   physical_device: PhysicalDevice,
   surface: Surface,
@@ -269,6 +271,11 @@ impl RendererVulkan{
       Err(_res) => return Err(RendererError::Error)
     };
 
+    let render_pass = match RenderPass::new(logical_device.clone()) {
+      Ok(res) => res,
+      Err(_res) => return Err(RendererError::Error)
+    };
+
     Ok(Self {
       version_major: major,
       version_minor: minor,
@@ -277,6 +284,7 @@ impl RendererVulkan{
       clear_depth: 1.0,
       clear_stencil: 0,
       swapchain: swapchain,
+      render_pass: render_pass,
       logical_device: logical_device,
       physical_device: physical_device,
       surface: surface,
