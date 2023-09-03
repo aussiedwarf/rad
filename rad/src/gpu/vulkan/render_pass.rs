@@ -9,9 +9,10 @@ pub struct RenderPass{
 
 impl RenderPass{
   pub fn new(
-    a_logical_device: std::rc::Rc<LogicalDevice>) -> Result<Self, RendererError>
+    a_logical_device: std::rc::Rc<LogicalDevice>, a_format: ash::vk::Format) -> Result<Self, RendererError>
   {
     let attachment_desc_color = ash::vk::AttachmentDescription::builder()
+      .format(a_format)
       .samples(ash::vk::SampleCountFlags::TYPE_1)
       .load_op(ash::vk::AttachmentLoadOp::CLEAR)  //also create renderpass that does not clear, or create/fetch system to generate render pass as needed
       .store_op(ash::vk::AttachmentStoreOp::STORE)

@@ -93,7 +93,7 @@ impl Swapchain{
       });
     }
 
-    let render_pass = match RenderPass::new(a_logical_device.clone()){
+    let render_pass = match RenderPass::new(a_logical_device.clone(), format.format){
       Ok(res) => res,
       Err(_res) => return Err(RendererError::Error)
     };
