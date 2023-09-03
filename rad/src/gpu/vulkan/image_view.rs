@@ -2,8 +2,8 @@ use crate::gpu::renderer_types::RendererError;
 use crate::gpu::vulkan::device::LogicalDevice;
 
 pub struct ImageView{
-  view: ash::vk::ImageView,
-  logical_device: std::rc::Rc<LogicalDevice>
+  pub view: ash::vk::ImageView,
+  pub logical_device: std::rc::Rc<LogicalDevice>
 }
 
 impl ImageView{

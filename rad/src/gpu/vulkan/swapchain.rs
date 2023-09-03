@@ -1,11 +1,15 @@
 use crate::gpu::renderer_types::RendererError;
 
-use super::surface::Surface;
-use super::instance::Instance;
 use super::device::{PhysicalDevice, LogicalDevice};
+use super::framebuffer::Framebuffer;
+use super::instance::Instance;
 use super::image_view::ImageView;
+use super::render_pass::RenderPass;
+use super::surface::Surface;
 
 pub struct Swapchain{
+  pub framebuffers: Vec<Framebuffer>,
+  pub render_pass: RenderPass,
   pub image_views: Vec<ImageView>,
   pub swapchain: ash::vk::SwapchainKHR,
   pub swapchain_loader: ash::extensions::khr::Swapchain,
@@ -89,7 +93,24 @@ impl Swapchain{
       });
     }
 
+    let render_pass = match RenderPass::new(a_logical_device.clone()){
+      Ok(res) => res,
+      Err(_res) => return Err(RendererError::Error)
+    };
+
+    let mut framebuffers = std::vec::Vec::<Framebuffer>::new();
+
+    for image_view in &image_views{
+      let framebuffer = match Framebuffer::new(a_logical_device.clone(), &render_pass, &image_view, a_extent){
+        Ok(res) => res,
+        Err(_res) => return Err(RendererError::Error)
+      };
+      framebuffers.push(framebuffer);
+    }
+
     Ok(Swapchain{
+      framebuffers: framebuffers,
+      render_pass: render_pass,
       image_views: image_views,
       swapchain: swapchain, 
       swapchain_loader: swapchain_loader, 
