@@ -38,22 +38,22 @@ impl RenderPass{
 
     let subpasses = [subpass_descr];
 
-    // let subpass_dep = ash::vk::SubpassDependency::builder()
-    //   .src_subpass(0)
-    //   .dst_subpass(0)
-    //   .src_stage_mask(ash::vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
-    //   .src_access_mask(ash::vk::AccessFlags::NONE)
-    //   .dst_stage_mask(ash::vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
-    //   .dst_access_mask(ash::vk::AccessFlags::COLOR_ATTACHMENT_WRITE)
-    //   .dependency_flags(ash::vk::DependencyFlags::BY_REGION)
-    //   .build();
+    let subpass_dep = ash::vk::SubpassDependency::builder()
+      .src_subpass(ash::vk::SUBPASS_EXTERNAL)
+      .dst_subpass(0)
+      .src_stage_mask(ash::vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
+      .src_access_mask(ash::vk::AccessFlags::NONE)
+      .dst_stage_mask(ash::vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
+      .dst_access_mask(ash::vk::AccessFlags::COLOR_ATTACHMENT_WRITE)
+      .dependency_flags(ash::vk::DependencyFlags::BY_REGION)
+      .build();
 
-    // let dependencies = [subpass_dep];
+    let dependencies = [subpass_dep];
     
     let info = ash::vk::RenderPassCreateInfo::builder()
       .attachments(&attachment_descs)
       .subpasses(&subpasses)
-      // .dependencies(&dependencies)
+      .dependencies(&dependencies)
       .build();
     let render_pass = unsafe { match a_logical_device.device.create_render_pass(&info, None){
       Ok(res) => res,

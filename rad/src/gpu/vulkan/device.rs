@@ -5,6 +5,7 @@ use super::util::get_names_and_pointers;
 use std::ffi::{CStr};
 
 pub struct LogicalDevice{
+  pub queue: ash::vk::Queue,
   pub device: ash::Device
 }
 
@@ -28,7 +29,9 @@ impl LogicalDevice{
       Err(_res) => return Err(RendererError::Error)
     }};
 
-    Ok(LogicalDevice{device: device})
+    let queue = unsafe { device.get_device_queue(a_physical_device.queue_family as u32, 0) };
+
+    Ok(LogicalDevice{queue: queue, device: device})
   }
 }
 

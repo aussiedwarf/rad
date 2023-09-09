@@ -149,12 +149,11 @@ impl Renderer {
 
     *i = (*i + 1) % 255;
     */
-    let col = Vec4::new(0.5, 0.0, 0.0, 1.0);
+    let col = Vec4::new(0.75, 0.5, 0.25, 1.0);
 
     self.renderer.set_clear_color(col);
 
-    // The rest of the game loop goes here...
-    self.renderer.clear(renderer_types::RendererClearType::COLOR);
+    self.renderer.begin_frame(renderer_types::RendererClearType::COLOR);
 
     self.renderer.draw_mesh(&self.camera, &mut self.mesh);
 
