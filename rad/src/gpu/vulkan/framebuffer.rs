@@ -36,6 +36,11 @@ impl Framebuffer{
 
 impl Drop for Framebuffer{
   fn drop(&mut self){
-    unsafe{self.logical_device.device.destroy_framebuffer(self.framebuffer, None)};
+    unsafe {
+      if self.framebuffer != ash::vk::Framebuffer::null(){
+        self.logical_device.device.destroy_framebuffer(self.framebuffer, None);
+        self.framebuffer = ash::vk::Framebuffer::null();
+      }
+    }
   }
 }

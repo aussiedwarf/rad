@@ -135,7 +135,7 @@ impl Window {
     },
       renderer_types::RendererType::Vulkan => 
       {
-      Ok(Box::new( match renderer_vulkan::RendererVulkan::new(&a_window.window.lock().unwrap().inner, true){
+      Ok(Box::new( match renderer_vulkan::RendererVulkan::new(a_window.window.clone(), true){
         Ok(res) => res,
         Err(_res) => return Err(WindowError::SdlRendererError)
       }))

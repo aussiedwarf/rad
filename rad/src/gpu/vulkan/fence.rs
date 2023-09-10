@@ -9,6 +9,7 @@ pub struct Fence{
 impl Fence{
   pub fn new(a_logical_device: std::rc::Rc<LogicalDevice>) -> Result<Self, RendererError>{
     let fence_info = ash::vk::FenceCreateInfo::builder()
+      .flags(ash::vk::FenceCreateFlags::SIGNALED)
       .build();
 
     let fence = match unsafe{a_logical_device.device.create_fence(&fence_info, None)}{

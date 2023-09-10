@@ -7,15 +7,20 @@ use super::image_view::ImageView;
 use super::render_pass::RenderPass;
 use super::surface::Surface;
 
-pub struct Swapchain{
-  pub framebuffers: Vec<Framebuffer>,
-  pub render_pass: RenderPass,
-  pub image_views: Vec<ImageView>,
+pub struct SwapchainBase{
   pub swapchain: ash::vk::SwapchainKHR,
   pub swapchain_loader: ash::extensions::khr::Swapchain,
-  pub swapchain_images: Vec<ash::vk::Image>,
+}
+
+pub struct Swapchain{
   pub logical_device: std::rc::Rc<LogicalDevice>,
-  pub extent: ash::vk::Extent2D
+  pub extent: ash::vk::Extent2D,
+
+  // order matters
+  pub framebuffers: Vec<Framebuffer>,
+  pub image_views: Vec<ImageView>,
+  pub swapchain_images: Vec<ash::vk::Image>,
+  pub swapchain: SwapchainBase,
 }
 
 impl Swapchain{
@@ -24,18 +29,9 @@ impl Swapchain{
     a_instance: &Instance, 
     a_surface: &Surface, 
     a_physical_device: &PhysicalDevice, 
+    a_render_pass: &RenderPass,
+    a_format: &ash::vk::SurfaceFormatKHR,
     a_extent: ash::vk::Extent2D) -> Result<Self, RendererError>{
-    
-    let surface_formats = unsafe { match a_surface.surface.get_physical_device_surface_formats(
-      a_physical_device.device, a_surface.surface_khr){
-        Ok(res) => res,
-        Err(_res) => return Err(RendererError::Error)
-      } };
-
-    let format = match Swapchain::pick_format(&surface_formats){
-      Some(res) => res,
-      None => return Err(RendererError::Error)
-    };
 
     let present_modes: Vec<ash::vk::PresentModeKHR> = unsafe { match a_surface.surface.get_physical_device_surface_present_modes(
       a_physical_device.device, a_surface.surface_khr){
@@ -58,11 +54,23 @@ impl Swapchain{
 		}
     let image_extent = Swapchain::get_swap_extent(&surface_capabilities, a_extent);
 
+    let swapchain_loader = ash::extensions::khr::Swapchain::new(&a_instance.instance, &a_logical_device.device);
+
+    if image_extent.width == 0 || image_extent.height == 0{
+      return Ok(Swapchain{
+        framebuffers: std::vec::Vec::<Framebuffer>::new(),
+        image_views: std::vec::Vec::<ImageView>::new(),
+        swapchain: SwapchainBase{swapchain: ash::vk::SwapchainKHR::null(), swapchain_loader: swapchain_loader}, 
+        swapchain_images: std::vec::Vec::<ash::vk::Image>::new(), 
+        logical_device: a_logical_device,
+        extent: image_extent})
+    }
+
     let create_info = ash::vk::SwapchainCreateInfoKHR::builder()
       .surface(a_surface.surface_khr)
       .min_image_count(min_image_count)
-      .image_format(format.format)
-      .image_color_space(format.color_space)
+      .image_format(a_format.format)
+      .image_color_space(a_format.color_space)
       .image_extent(image_extent)
       .image_array_layers(1)
       .image_usage(ash::vk::ImageUsageFlags::COLOR_ATTACHMENT)
@@ -73,35 +81,30 @@ impl Swapchain{
       .clipped(true)
       .build();
 
-    let swapchain_loader = ash::extensions::khr::Swapchain::new(&a_instance.instance, &a_logical_device.device);
-
     let swapchain = unsafe { match swapchain_loader.create_swapchain(&create_info, None) {
       Ok(res) => res,
       Err(_res) => return Err(RendererError::Error)
     }};
 
-    let swapchain_images = unsafe { match swapchain_loader.get_swapchain_images(swapchain) {
+    let swapchain_base = SwapchainBase{swapchain: swapchain, swapchain_loader: swapchain_loader};
+
+    let swapchain_images = unsafe { match swapchain_base.swapchain_loader.get_swapchain_images(swapchain) {
       Ok(res) => res,
       Err(_res) => return Err(RendererError::Error)
     }};
 
     let mut image_views = Vec::<ImageView>::new();
     for &image in swapchain_images.iter(){
-      image_views.push(match ImageView::new(a_logical_device.clone(), &image, format.format){
+      image_views.push(match ImageView::new(a_logical_device.clone(), &image, a_format.format){
         Ok(res) => res,
         Err(_res) => return Err(RendererError::Error)
       });
     }
 
-    let render_pass = match RenderPass::new(a_logical_device.clone(), format.format){
-      Ok(res) => res,
-      Err(_res) => return Err(RendererError::Error)
-    };
-
     let mut framebuffers = std::vec::Vec::<Framebuffer>::new();
 
     for image_view in &image_views{
-      let framebuffer = match Framebuffer::new(a_logical_device.clone(), &render_pass, &image_view, a_extent){
+      let framebuffer = match Framebuffer::new(a_logical_device.clone(), &a_render_pass, &image_view, image_extent){
         Ok(res) => res,
         Err(_res) => return Err(RendererError::Error)
       };
@@ -110,10 +113,8 @@ impl Swapchain{
 
     Ok(Swapchain{
       framebuffers: framebuffers,
-      render_pass: render_pass,
       image_views: image_views,
-      swapchain: swapchain, 
-      swapchain_loader: swapchain_loader, 
+      swapchain: swapchain_base, 
       swapchain_images: swapchain_images, 
       logical_device: a_logical_device,
       extent: image_extent})
@@ -139,15 +140,6 @@ impl Swapchain{
     }
   }
 
-  fn pick_format(a_formats: &Vec<ash::vk::SurfaceFormatKHR>) -> Option<&ash::vk::SurfaceFormatKHR>{
-    for format in a_formats{
-      if format.format == ash::vk::Format::B8G8R8A8_SRGB && format.color_space == ash::vk::ColorSpaceKHR::SRGB_NONLINEAR{
-        return Some(format)
-      }
-    }
-    None
-  }
-
   fn pick_present_mode(a_modes: &Vec<ash::vk::PresentModeKHR>) -> ash::vk::PresentModeKHR{
     for &mode in a_modes.iter(){
       if mode == ash::vk::PresentModeKHR::MAILBOX{
@@ -156,12 +148,41 @@ impl Swapchain{
     }
     ash::vk::PresentModeKHR::FIFO
   }
+
+  pub fn clear(&mut self){
+    self.swapchain_images.clear();
+
+    for framebuffer in self.framebuffers.iter_mut(){
+      unsafe{self.logical_device.device.destroy_framebuffer(framebuffer.framebuffer, None)};
+      framebuffer.framebuffer = ash::vk::Framebuffer::null();
+    }
+
+    for image_view in self.image_views.iter_mut(){
+      unsafe { self.logical_device.device.destroy_image_view(image_view.view, None) };
+      image_view.view = ash::vk::ImageView::null();
+    }
+
+    unsafe { self.swapchain.swapchain_loader.destroy_swapchain(self.swapchain.swapchain, None) };
+    self.swapchain.swapchain = ash::vk::SwapchainKHR::null();
+
+    self.extent.width = 0;
+    self.extent.height = 0;
+  }
 }
 
 impl Drop for Swapchain{
   fn drop(&mut self){
     self.swapchain_images.clear();
+  }
+}
 
-    unsafe { self.swapchain_loader.destroy_swapchain(self.swapchain, None) };
+impl Drop for SwapchainBase{
+  fn drop(&mut self){
+    unsafe { 
+      if self.swapchain != ash::vk::SwapchainKHR::null(){
+        self.swapchain_loader.destroy_swapchain(self.swapchain, None);
+        self.swapchain = ash::vk::SwapchainKHR::null();
+      }
+    };
   }
 }

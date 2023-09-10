@@ -33,6 +33,11 @@ impl ImageView{
 
 impl Drop for ImageView{
   fn drop(&mut self){
-    unsafe { self.logical_device.device.destroy_image_view(self.view, None) };
+    unsafe {
+      if self.view != ash::vk::ImageView::null(){
+        self.logical_device.device.destroy_image_view(self.view, None);
+        self.view = ash::vk::ImageView::null();
+      }
+    }
   }
 }

@@ -1,12 +1,13 @@
 use ash::{vk, Entry};
 use glam::*;
-use sdl2::video::VkSurfaceKHR;
 use std::rc::Rc;
 
+use crate::core::unsafe_send::UnsafeSend;
 use super::device::{PhysicalDevice, LogicalDevice};
 use super::command_pool::CommandPool;
 use super::fence::Fence;
 use super::instance::Instance;
+use super::render_pass::RenderPass;
 use super::semaphore::Semaphore;
 use super::surface::Surface;
 use super::swapchain::Swapchain;
@@ -16,7 +17,8 @@ use crate::gpu::material::*;
 use crate::gpu::camera::*;
 use crate::gpu::uniforms::*;
 use crate::gpu::image::*;
-use libc::{c_char};
+use std::sync::Mutex;
+use std::sync::Arc;
 
 pub struct SamplerVulkan{
   name: String,
@@ -141,14 +143,18 @@ pub struct RendererVulkan {
 
   current_frame: u32,
   image_index: u32,
+
+  window: Arc<Mutex<UnsafeSend<sdl2::video::Window>>>,
   
   // Order matters here so that instance is destroyed last
+  framebuffer_format: ash::vk::SurfaceFormatKHR,
   image_available_semaphores: std::vec::Vec::<Semaphore>,
   render_finished_semaphores: std::vec::Vec::<Semaphore>,
   render_fences: std::vec::Vec<Fence>,
   command_buffers: std::vec::Vec<ash::vk::CommandBuffer>,
   command_pool: CommandPool,
   swapchain: Swapchain,
+  render_pass: RenderPass,
   logical_device: Rc<LogicalDevice>,
   physical_device: PhysicalDevice,
   surface: Surface,
@@ -168,126 +174,150 @@ impl Renderer for RendererVulkan {
   fn begin_frame(&mut self, _clear: RendererClearType){
     let current_frame = self.current_frame as usize;
 
-    let (image_index, suboptimal) = unsafe { match self.swapchain.swapchain_loader.acquire_next_image(
-      self.swapchain.swapchain, 
-      u64::MAX, 
-      self.image_available_semaphores[current_frame].semaphore, 
-      ash::vk::Fence::null()) {
-        Ok(res) => res,
-        Err(res) => {
-          println!("Error: reset_command_buffer {}", res);
-          return
-        }
-    }};
+    let mut attempt = true;
+    while attempt && self.swapchain.extent.width > 0 && self.swapchain.extent.height > 0{
+      attempt = false;
 
-    self.image_index = image_index;
+      let (image_index, _suboptimal) = unsafe { match self.swapchain.swapchain.swapchain_loader.acquire_next_image(
+        self.swapchain.swapchain.swapchain, 
+        u64::MAX, 
+        self.image_available_semaphores[current_frame].semaphore, 
+        ash::vk::Fence::null()) {
+          Ok(res) => res,
+          Err(res) if res == ash::vk::Result::ERROR_OUT_OF_DATE_KHR => {
+            self.recreate_swapchain();
+            attempt = true;
+            (0,true)
+          },
+          Err(res) => {
+            println!("Error: reset_command_buffer: {}", res);
+            return
+          }
+      }};
 
-    match unsafe {self.logical_device.device.reset_command_buffer(self.command_buffers[current_frame], ash::vk::CommandBufferResetFlags::empty())}{
-      Ok(_) => {},
-      Err(res) => {println!("Error: reset_command_buffer {}", res)}
-    };
+      self.image_index = image_index;
+    }
 
-    let begin_info = ash::vk::CommandBufferBeginInfo::builder()
-      .build();
+    if self.swapchain.extent.width > 0 && self.swapchain.extent.height > 0{
+      
+      let fences = [self.render_fences[current_frame].fence];
+      // TODO handle result
+      match unsafe { self.logical_device.device.wait_for_fences(&fences, true, u64::MAX) }{
+        Ok(_) => {},
+        Err(res) => {println!("Error: wait_for_fences {}", res)}
+      };
 
-    match unsafe { self.logical_device.device.begin_command_buffer(self.command_buffers[current_frame], &begin_info) }{
-      Ok(_) => {},
-      Err(res) => {println!("Error: begin_command_buffer {}", res)}
-    };
+      // TODO handle result
+      match unsafe { self.logical_device.device.reset_fences(&fences) }{
+        Ok(_) => {},
+        Err(res) => {println!("Error: reset_fences {}", res)}
+      };
+      
+      match unsafe {self.logical_device.device.reset_command_buffer(self.command_buffers[current_frame], ash::vk::CommandBufferResetFlags::empty())}{
+        Ok(_) => {},
+        Err(res) => {println!("Error: reset_command_buffer {}", res)}
+      };
 
-    let clear_values = [ash::vk::ClearValue {
-      color: ash::vk::ClearColorValue{float32: self.clear_color.to_array()}}];
-    let mut render_pass_info = ash::vk::RenderPassBeginInfo::builder()
-      .render_pass(self.swapchain.render_pass.render_pass)
-      .framebuffer(self.swapchain.framebuffers[image_index as usize].framebuffer)
-      .render_area(ash::vk::Rect2D{offset: ash::vk::Offset2D{x:0,y:0}, extent: self.swapchain.extent})
-      .clear_values(&clear_values)
-      .build();
+      let begin_info = ash::vk::CommandBufferBeginInfo::builder()
+        .build();
 
-    unsafe { self.logical_device.device.cmd_begin_render_pass(
-      self.command_buffers[current_frame], 
-      &render_pass_info, 
-      ash::vk::SubpassContents::INLINE)  };
+      match unsafe { self.logical_device.device.begin_command_buffer(self.command_buffers[current_frame], &begin_info) }{
+        Ok(_) => {},
+        Err(res) => {println!("Error: begin_command_buffer {}", res)}
+      };
 
-    let viewports = [ash::vk::Viewport::builder()
-      .x(0.0)
-      .y(0.0)
-      .width(self.swapchain.extent.width as f32)
-      .height(self.swapchain.extent.height as f32)
-      .min_depth(0.0)
-      .max_depth(0.0)
-      .build()];
+      let clear_values = [ash::vk::ClearValue {
+        color: ash::vk::ClearColorValue{float32: self.clear_color.to_array()}}];
+      let render_pass_info = ash::vk::RenderPassBeginInfo::builder()
+        .render_pass(self.render_pass.render_pass)
+        .framebuffer(self.swapchain.framebuffers[self.image_index as usize].framebuffer)
+        .render_area(ash::vk::Rect2D{offset: ash::vk::Offset2D{x:0,y:0}, extent: self.swapchain.extent})
+        .clear_values(&clear_values)
+        .build();
 
-    unsafe { self.logical_device.device.cmd_set_viewport(self.command_buffers[current_frame], 0, &viewports) };
+      unsafe { self.logical_device.device.cmd_begin_render_pass(
+        self.command_buffers[current_frame], 
+        &render_pass_info, 
+        ash::vk::SubpassContents::INLINE)  };
+    
+      let viewports = [ash::vk::Viewport::builder()
+        .x(0.0)
+        .y(0.0)
+        .width(self.swapchain.extent.width as f32)
+        .height(self.swapchain.extent.height as f32)
+        .min_depth(0.0)
+        .max_depth(0.0)
+        .build()];
 
-    let scissors = [ash::vk::Rect2D{offset: ash::vk::Offset2D{x:0,y:0}, extent: self.swapchain.extent}];
-    unsafe { self.logical_device.device.cmd_set_scissor(
-      self.command_buffers[current_frame], 
-      0, 
-      &scissors)};
+      unsafe { self.logical_device.device.cmd_set_viewport(self.command_buffers[current_frame], 0, &viewports) };
+
+      let scissors = [ash::vk::Rect2D{offset: ash::vk::Offset2D{x:0,y:0}, extent: self.swapchain.extent}];
+      unsafe { self.logical_device.device.cmd_set_scissor(
+        self.command_buffers[current_frame], 
+        0, 
+        &scissors)};
+    }
   }
 
   fn end_frame(&mut self){
-    
     let current_frame = self.current_frame as usize;
+    let mut recreate = false;
 
-    unsafe { self.logical_device.device.cmd_end_render_pass(self.command_buffers[current_frame])};
+    if self.swapchain.extent.width > 0 && self.swapchain.extent.height > 0{
+      unsafe { self.logical_device.device.cmd_end_render_pass(self.command_buffers[current_frame])};
     
-    // TODO handle result
-    match unsafe { self.logical_device.device.end_command_buffer(self.command_buffers[current_frame]) } {
-      Ok(_) => {},
-      Err(res) => {println!("Error: end_command_buffer {}", res)}
-    };
+      // TODO handle result
+      match unsafe { self.logical_device.device.end_command_buffer(self.command_buffers[current_frame]) } {
+        Ok(_) => {},
+        Err(res) => {println!("Error: end_command_buffer {}", res)}
+      };
 
-    let wait_semaphores = [self.image_available_semaphores[current_frame].semaphore ];
+      let wait_semaphores = [self.image_available_semaphores[current_frame].semaphore ];
+      let wait_stages = [ ash::vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT ];
+      let signal_semaphores = [ self.render_finished_semaphores[current_frame].semaphore ];
 
-    let wait_stages = [ ash::vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT ];
+      let submit_info = ash::vk::SubmitInfo::builder()
+        .wait_semaphores(&wait_semaphores)
+        .wait_dst_stage_mask(&wait_stages)
+        .signal_semaphores(&signal_semaphores)
+        .command_buffers(&[self.command_buffers[current_frame]])
+        .build();
 
-    let signal_semaphores = [ self.render_finished_semaphores[current_frame].semaphore ];
+      let submits = [submit_info];
 
-    let submit_info = ash::vk::SubmitInfo::builder()
-      .wait_semaphores(&wait_semaphores)
-      .wait_dst_stage_mask(&wait_stages)
-      .signal_semaphores(&signal_semaphores)
-      .command_buffers(&[self.command_buffers[current_frame]])
-      .build();
+      // TODO handle result
+      match unsafe { self.logical_device.device.queue_submit(self.logical_device.queue, &submits, self.render_fences[current_frame].fence) }{
+        Ok(_) => {},
+        Err(res) => {println!("Error: queue_submit {}", res)}
+      };
 
-    let submits = [submit_info];
+      let swapchains = [self.swapchain.swapchain.swapchain];
+      let image_indices = [self.image_index];
 
-    // TODO handle result
-    match unsafe { self.logical_device.device.queue_submit(self.logical_device.queue, &submits, self.render_fences[current_frame].fence) }{
-      Ok(_) => {},
-      Err(res) => {println!("Error: queue_submit {}", res)}
-    };
+      let present_info = ash::vk::PresentInfoKHR::builder()
+        .wait_semaphores(&signal_semaphores)
+        .swapchains(&swapchains)
+        .image_indices(&image_indices)
+        .build();
 
-    let fences = [self.render_fences[current_frame].fence];
-    // TODO handle result
-    match unsafe { self.logical_device.device.wait_for_fences(&fences, true, u64::MAX) }{
-      Ok(_) => {},
-      Err(res) => {println!("Error: wait_for_fences {}", res)}
-    };
-    // TODO handle result
-    match unsafe { self.logical_device.device.reset_fences(&fences) }{
-      Ok(_) => {},
-      Err(res) => {println!("Error: reset_fences {}", res)}
-    };
+      let window_size = self.window.lock().unwrap().inner.size();
+      let window_resize = self.swapchain.extent.width != window_size.0 || self.swapchain.extent.height != window_size.1;
+      // TODO handle result
+      recreate = match unsafe { self.swapchain.swapchain.swapchain_loader.queue_present(self.logical_device.queue, &present_info) }{
+        Ok(_) => window_resize,
+        Err(res) if res == ash::vk::Result::ERROR_OUT_OF_DATE_KHR || res == ash::vk::Result::SUBOPTIMAL_KHR=> true,
+        Err(res) => {println!("Error: queue_present {}", res); false} 
+      };
 
-    let swapchains = [self.swapchain.swapchain];
-    let image_indices = [self.image_index];
+      self.current_frame = (self.current_frame + 1) % Self::MAX_FRAMES;
+    }
+    else {
+      recreate = true;
+    }
 
-    let present_info = ash::vk::PresentInfoKHR::builder()
-      .wait_semaphores(&signal_semaphores)
-      .swapchains(&swapchains)
-      .image_indices(&image_indices)
-      .build();
-
-    // TODO handle result
-    match unsafe { self.swapchain.swapchain_loader.queue_present(self.logical_device.queue, &present_info) }{
-      Ok(_) => {},
-      Err(res) => {println!("Error: queue_present {}", res)}
-    };
-
-    self.current_frame = (self.current_frame + 1) % Self::MAX_FRAMES;
+    if recreate{
+      self.recreate_swapchain();
+    }
   }
 
   //clear immediatly
@@ -382,7 +412,7 @@ impl Renderer for RendererVulkan {
 impl RendererVulkan{
   pub const MAX_FRAMES: u32 = 2;
 
-  pub fn new(a_window: &sdl2::video::Window, a_enable_validation_layers: bool) -> Result<Self, RendererError>{
+  pub fn new(a_window: Arc<Mutex<UnsafeSend<sdl2::video::Window>>>, a_enable_validation_layers: bool) -> Result<Self, RendererError>{
     /*
     let extensions = match a_window.vulkan_instance_extensions(){
       Ok(res) => res,
@@ -413,7 +443,7 @@ impl RendererVulkan{
       None => {},
     };
 
-    let surface = match Surface::new(a_window, &entry, &instance) {
+    let surface = match Surface::new(&a_window.lock().unwrap().inner, &entry, &instance) {
       Ok(res) => res,
       Err(_res) => return Err(RendererError::Error)
     };
@@ -430,10 +460,27 @@ impl RendererVulkan{
       Err(_res) => return Err(RendererError::Error)
     };
 
-    let window_size = a_window.size();
+    let format = match surface.pick_format(&physical_device){
+      Ok(res) => res,
+      Err(_res) => return Err(RendererError::Error)
+    };
+
+    let render_pass = match RenderPass::new(logical_device.clone(), format.format){
+      Ok(res) => res,
+      Err(_res) => return Err(RendererError::Error)
+    };
+
+    let window_size = a_window.lock().unwrap().inner.size();
     let extent = ash::vk::Extent2D{width: window_size.0, height: window_size.1};
 
-    let swapchain = match Swapchain::new(logical_device.clone(), &instance, &surface, &physical_device, extent){
+    let swapchain = match Swapchain::new(
+      logical_device.clone(), 
+      &instance, 
+      &surface, 
+      &physical_device, 
+      &render_pass,
+      &format,
+      extent){
       Ok(res) => res,
       Err(_res) => return Err(RendererError::Error)
     };
@@ -476,17 +523,49 @@ impl RendererVulkan{
       clear_stencil: 0,
       current_frame: 0,
       image_index: 0,
+      window: a_window,
+      framebuffer_format: format,
       image_available_semaphores: image_available_semaphores,
       render_finished_semaphores: render_finished_semaphores,
       render_fences: render_fences,
       command_buffers: command_buffers,
       command_pool: command_pool,
       swapchain: swapchain,
+      render_pass: render_pass,
       logical_device: logical_device,
       physical_device: physical_device,
       surface: surface,
       instance: instance,
     })
+  }
+
+  fn recreate_swapchain(&mut self) -> Result<(), RendererError>{
+    let window_size = self.window.lock().unwrap().inner.size();
+    let extent = ash::vk::Extent2D{width: window_size.0, height: window_size.1};
+
+    match unsafe{self.logical_device.device.device_wait_idle()}{
+      Ok(_) =>{},
+      Err(res) => println!("Error: device_wait_idle: {}", res)
+    };
+
+    //recreate
+    self.swapchain.clear();
+    self.swapchain = match Swapchain::new(
+      self.logical_device.clone(),
+      &self.instance,
+      &self.surface,
+      &self.physical_device,
+      &self.render_pass,
+      &self.framebuffer_format,
+      extent
+    ){
+      Ok(res) => res,
+      Err(res) => {
+        println!("Error: Swapchain::new: {}", res);
+        return Err(RendererError::Error)
+      }
+    };
+    return Ok(())
   }
 
 }
