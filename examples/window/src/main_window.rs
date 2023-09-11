@@ -27,10 +27,10 @@ use std::thread;
 use glam::*;
 
 struct Renderer{
+  camera: Camera,
+  mesh: Box<renderer::Mesh>,
   renderer: Box<dyn renderer::Renderer>,
   window: Arc<Window>,
-  camera: Camera,
-  mesh: Box<renderer::Mesh>
 }
 
 impl Renderer {
@@ -47,33 +47,73 @@ impl Renderer {
     };
 
     let shader_path = match window.renderer_type {
-      renderer_types::RendererType::OpenGL | renderer_types::RendererType::Vulkan => "shaders/gl/",
+      renderer_types::RendererType::OpenGL => "shaders/gl/",
       renderer_types::RendererType::OpenGLES => "shaders/gles/",
+      renderer_types::RendererType::Vulkan => "shaders/spirv/",
       _ => "shaders/"
     };
 
-    let source_vertex = match filesystem::read_text_file_immediate(&(shader_path.to_owned() + "basic.vert")){
-      Ok(res) => res,
-      Err(_res) => return Err(renderer_types::RendererError::Error)
+    let shader_extension = match window.renderer_type {
+      renderer_types::RendererType::Vulkan => ".spv",
+      _ => ""
     };
 
-    println!("shader:\n{}", source_vertex);
+    let shader_vertex = match window.renderer_type {
+      renderer_types::RendererType::Vulkan => {
+        let source_vertex = match filesystem::read_file_immediate(&(shader_path.to_owned() + "basic.vert" + shader_extension)){
+          Ok(res) => res,
+          Err(_res) => return Err(renderer_types::RendererError::Error)
+        };
 
-    let shader_vertex = match renderer.load_shader(renderer_types::ShaderType::Vertex, source_vertex.as_ref()){
-      Ok(res) => res,
-      Err(_res) => return Err(renderer_types::RendererError::Error)
+        let shader = match renderer.load_shader_intermediate(renderer_types::ShaderType::Vertex, source_vertex.as_ref()){
+          Ok(res) => res,
+          Err(_res) => return Err(renderer_types::RendererError::Error)
+        };
+
+        shader
+      },
+      _ => {
+        let source_vertex = match filesystem::read_text_file_immediate(&(shader_path.to_owned() + "basic.vert" + shader_extension)){
+          Ok(res) => res,
+          Err(_res) => return Err(renderer_types::RendererError::Error)
+        };
+
+        let shader = match renderer.load_shader(renderer_types::ShaderType::Vertex, source_vertex.as_ref()){
+          Ok(res) => res,
+          Err(_res) => return Err(renderer_types::RendererError::Error)
+        };
+
+        shader
+      }
     };
+    
+    let shader_frag = match window.renderer_type {
+      renderer_types::RendererType::Vulkan => {
+        let mut source_frag = match filesystem::read_file_immediate(&(shader_path.to_owned() + "basic.frag" + shader_extension)){
+          Ok(res) => res,
+          Err(_res) => return Err(renderer_types::RendererError::Error)
+        };
 
-    let mut source_frag = match filesystem::read_text_file_immediate(&(shader_path.to_owned() + "basic.frag")){
-      Ok(res) => res,
-      Err(_res) => return Err(renderer_types::RendererError::Error)
-    };
+        let shader = match renderer.load_shader_intermediate(renderer_types::ShaderType::Fragment, &mut source_frag){
+          Ok(res) => res,
+          Err(_res) => return Err(renderer_types::RendererError::Error)
+        };
 
-    println!("shader:\n{}", source_frag);
+        shader
+      },
+      _ => {
+        let mut source_frag = match filesystem::read_text_file_immediate(&(shader_path.to_owned() + "basic.frag" + shader_extension)){
+          Ok(res) => res,
+          Err(_res) => return Err(renderer_types::RendererError::Error)
+        };
 
-    let shader_frag = match renderer.load_shader(renderer_types::ShaderType::Fragment, &mut source_frag){
-      Ok(res) => res,
-      Err(_res) => return Err(renderer_types::RendererError::Error)
+        let shader = match renderer.load_shader(renderer_types::ShaderType::Fragment, &mut source_frag){
+          Ok(res) => res,
+          Err(_res) => return Err(renderer_types::RendererError::Error)
+        };
+
+        shader
+      }
     };
 
     let shader_program = match renderer.load_program_vert_frag(shader_vertex, shader_frag){

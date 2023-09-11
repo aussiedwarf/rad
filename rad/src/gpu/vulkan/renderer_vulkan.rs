@@ -17,6 +17,7 @@ use crate::gpu::material::*;
 use crate::gpu::camera::*;
 use crate::gpu::uniforms::*;
 use crate::gpu::image::*;
+use std::ffi::CString;
 use std::sync::Mutex;
 use std::sync::Arc;
 
@@ -68,7 +69,8 @@ impl Texture for TextureVulkan {
 }
 
 pub struct ShaderVulkan {
-
+  pub module: ash::vk::ShaderModule,
+  pub logical_device: std::rc::Rc<LogicalDevice>
 }
 
 impl Shader for ShaderVulkan {
@@ -77,7 +79,16 @@ impl Shader for ShaderVulkan {
   }
 }
 
+impl Drop for ShaderVulkan {
+  fn drop(&mut self){
+    unsafe {self.logical_device.device.destroy_shader_module(self.module, None)};
+  }
+}
+
 pub struct ProgramVulkan {
+  pub pipeline: ash::vk::Pipeline,
+  pub pipeline_layout: ash::vk::PipelineLayout,
+  pub logical_device: std::rc::Rc<LogicalDevice>
 }
 
 impl Program for ProgramVulkan {
@@ -90,6 +101,15 @@ impl Program for ProgramVulkan {
       name: UniformName::new(a_name),
       data: a_data,
     })
+  }
+}
+
+impl Drop for ProgramVulkan {
+  fn drop(&mut self){
+    unsafe{ 
+      self.logical_device.device.destroy_pipeline(self.pipeline, None);
+      self.logical_device.device.destroy_pipeline_layout(self.pipeline_layout, None);
+    }
   }
 }
 
@@ -355,13 +375,189 @@ impl Renderer for RendererVulkan {
   }
 
   fn load_shader(&mut self, _shader_type: ShaderType, _source: &str) -> Result<Box<dyn Shader>, RendererError>{
-    // Err(RendererError::Unimplemented)
-    Ok(Box::new(ShaderVulkan{}))
+    return Err(RendererError::Unimplemented)
   }
 
-  fn load_program_vert_frag(&mut self, _shader_vert: Box<dyn Shader>, _shader_frag: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>{
-    //Err(RendererError::Unimplemented)
-    Ok(Box::new(ProgramVulkan{}))
+  fn load_shader_intermediate(&mut self, _shader_type: ShaderType, a_source: &std::vec::Vec::<u8>) -> Result<Box<dyn Shader>, RendererError>{
+    
+    if a_source.len() % 4 != 0{
+      return Err(RendererError::Error)
+    }
+
+    let slice: &[u32] = unsafe {
+      std::slice::from_raw_parts(a_source.as_ptr() as *const u32, a_source.len() / 4)
+    };
+    
+    let create_info = ash::vk::ShaderModuleCreateInfo::builder()
+      .code(slice)
+      .build();
+
+    let module = match unsafe { self.logical_device.device.create_shader_module(&create_info, None) } {
+      Ok(res) => res,
+      Err(_res) => return Err(RendererError::Error)
+    };
+
+    Ok(Box::new(ShaderVulkan{module: module, logical_device: self.logical_device.clone()}))
+  }
+
+  fn load_program_vert_frag(&mut self, a_shader_vert: Box<dyn Shader>, a_shader_frag: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>{
+    let vertex_module = match a_shader_vert.any().downcast_ref::<ShaderVulkan>() {
+      Some(res) => res,
+      None => return Err(RendererError::InvalidCast)
+    };
+
+    let frag_module = match a_shader_frag.any().downcast_ref::<ShaderVulkan>() {
+      Some(res) => res,
+      None => return Err(RendererError::InvalidCast)
+    };
+
+    let main_function_name = CString::new("main").unwrap();
+
+    let vertex_info = ash::vk::PipelineShaderStageCreateInfo::builder()
+      .stage(ash::vk::ShaderStageFlags::VERTEX)
+      .module(vertex_module.module)
+      .name(main_function_name.as_c_str())
+      .build();
+
+    let frag_info = ash::vk::PipelineShaderStageCreateInfo::builder()
+      .stage(ash::vk::ShaderStageFlags::FRAGMENT)
+      .module(frag_module.module)
+      .name(main_function_name.as_c_str())
+      .build();
+
+    let shader_stages = [vertex_info, frag_info];
+
+    let vertex_state_info: vk::PipelineVertexInputStateCreateInfo = ash::vk::PipelineVertexInputStateCreateInfo::builder()
+      //.vertex_binding_descriptions(vertex_binding_descriptions)
+      //.vertex_attribute_descriptions(vertex_attribute_descriptions)
+      .build();
+
+    let vertex_assembly_info = ash::vk::PipelineInputAssemblyStateCreateInfo::builder()
+      .primitive_restart_enable(false)
+      .topology(ash::vk::PrimitiveTopology::TRIANGLE_LIST)
+      .build();
+
+		let viewports = [ash::vk::Viewport{
+      x: 0.0,
+      y: 0.0,
+      width: self.swapchain.extent.width as f32,
+      height: self.swapchain.extent.height as f32,
+      min_depth: 0.0,
+      max_depth: 1.0}];
+
+    let scissors = [vk::Rect2D {
+      offset: vk::Offset2D { x: 0, y: 0 },
+      extent: self.swapchain.extent,
+    }];
+
+    let viewport_state_info = ash::vk::PipelineViewportStateCreateInfo::builder()
+      .viewports(&viewports)
+      .scissors(&scissors)
+      .build();
+
+    let rasterization_state_info = ash::vk::PipelineRasterizationStateCreateInfo::builder()
+      .depth_clamp_enable(false)
+      .cull_mode(ash::vk::CullModeFlags::BACK)
+      .front_face(vk::FrontFace::CLOCKWISE)
+      .line_width(1.0)
+      .polygon_mode(ash::vk::PolygonMode::FILL)
+      .rasterizer_discard_enable(false)
+      .depth_bias_clamp(0.0)
+      .depth_bias_constant_factor(0.0)
+      .depth_bias_enable(false)
+      .depth_bias_slope_factor(0.0)
+      .build();
+
+    let multisample_state_create_info = ash::vk::PipelineMultisampleStateCreateInfo::builder()
+      .rasterization_samples(ash::vk::SampleCountFlags::TYPE_1)
+      .sample_shading_enable(false)
+      .min_sample_shading(0.0)
+      .alpha_to_one_enable(false)
+      .alpha_to_coverage_enable(false)
+      .build();
+
+    let stencil_state = ash::vk::StencilOpState::builder()
+      .fail_op(ash::vk::StencilOp::KEEP)
+      .pass_op(ash::vk::StencilOp::KEEP)
+      .depth_fail_op(ash::vk::StencilOp::KEEP)
+      .compare_op(ash::vk::CompareOp::ALWAYS)
+      .compare_mask(0)
+      .write_mask(0)
+      .reference(0)
+      .build();
+
+    let depth_state_create_info = ash::vk::PipelineDepthStencilStateCreateInfo::builder()
+      .depth_test_enable(false)
+      .depth_write_enable(false)
+      .depth_compare_op(ash::vk::CompareOp::LESS_OR_EQUAL)
+      .depth_bounds_test_enable(false)
+      .stencil_test_enable(false)
+      .front(stencil_state)
+      .back(stencil_state)
+      .max_depth_bounds(1.0)
+      .min_depth_bounds(0.0)
+      .build();
+
+    let color_blend_attachment_states = [ash::vk::PipelineColorBlendAttachmentState::builder()
+      .blend_enable(false)
+      .color_write_mask(ash::vk::ColorComponentFlags::RGBA)
+      .src_color_blend_factor(ash::vk::BlendFactor::ONE)
+      .dst_color_blend_factor(ash::vk::BlendFactor::ZERO)
+      .color_blend_op(ash::vk::BlendOp::ADD)
+      .src_alpha_blend_factor(ash::vk::BlendFactor::ONE)
+      .dst_alpha_blend_factor(ash::vk::BlendFactor::ZERO)
+      .alpha_blend_op(ash::vk::BlendOp::ADD)
+      .build()];
+
+    let color_blend_state = ash::vk::PipelineColorBlendStateCreateInfo::builder()
+      .logic_op_enable(false)
+      .logic_op(ash::vk::LogicOp::COPY)
+      .attachments(&color_blend_attachment_states)
+      .blend_constants([0.0, 0.0, 0.0, 0.0])
+      .build();
+
+    /*
+		let dynamic_states = [vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR];
+
+    let dynamic_state_info = ash::vk::PipelineDynamicStateCreateInfo::builder()
+      .dynamic_states(&dynamic_states)
+      .build();
+    */
+
+    let pipeline_layout_info = ash::vk::PipelineLayoutCreateInfo::builder()
+      .build();
+
+    let pipeline_layout = match unsafe { self.logical_device.device.create_pipeline_layout(&pipeline_layout_info, None) }{
+      Ok(res) => res,
+      Err(_res) => return Err(RendererError::ShaderCompile)
+    };
+
+    let create_info = ash::vk::GraphicsPipelineCreateInfo::builder()
+      .stages(&shader_stages)
+      .vertex_input_state(&vertex_state_info)
+      .input_assembly_state(&vertex_assembly_info)
+      .viewport_state(&viewport_state_info)
+      .rasterization_state(&rasterization_state_info)
+      .multisample_state(&multisample_state_create_info)
+      .depth_stencil_state(&depth_state_create_info)
+      .color_blend_state(&color_blend_state)
+      .layout(pipeline_layout)
+      .render_pass(self.render_pass.render_pass)
+      .subpass(0)
+      .base_pipeline_index(-1)
+      .build();
+
+    let pipeline_infos = [create_info];
+
+    let graphics_pipelines = match unsafe { self.logical_device.device.create_graphics_pipelines(ash::vk::PipelineCache::null(), &pipeline_infos, None) }{
+      Ok(res) => res,
+      Err(_res) => return Err(RendererError::ShaderCompile)
+    };
+
+    Ok(Box::new(ProgramVulkan{
+      pipeline: graphics_pipelines[0], 
+      pipeline_layout: pipeline_layout,
+      logical_device: self.logical_device.clone()}))
   }
 
   fn get_uniform(&mut self, _shader: &mut Box<dyn Program>, a_name: &str) -> Box<dyn UniformShader>{
@@ -402,7 +598,27 @@ impl Renderer for RendererVulkan {
   fn use_program(&mut self, _program: &Box<dyn Program>){}
 
   fn draw_geometry(&mut self, _geometry: &Box<dyn Geometry>){}
-  fn draw_mesh(&mut self, _camera: &Camera, _geometry: &mut Box<Mesh>){}
+  fn draw_mesh(&mut self, _camera: &Camera, a_mesh: &mut Box<Mesh>){
+    // let geometry = match a_mesh.geometry.any().downcast_ref::<GeometryVulkan>() {
+    //   Some(res) => res,
+    //   None => return
+    // };
+
+    let program = match a_mesh.material.get_program().any().downcast_ref::<ProgramVulkan>(){
+      Some(res) => res,
+      None => return
+    };
+
+    unsafe { 
+      // TODO Only set pipeline if not already set
+      self.logical_device.device.cmd_bind_pipeline(
+      self.command_buffers[self.current_frame as usize],
+      ash::vk::PipelineBindPoint::GRAPHICS, 
+      program.pipeline);
+
+      self.logical_device.device.cmd_draw(self.command_buffers[self.current_frame as usize], 3, 1, 0, 0);
+    }
+  }
 
   fn read_render_buffer(&mut self) -> Image{
     return Image{width: 0, height: 0, pitch: 0, pixels: std::vec::Vec::<u8>::new()}

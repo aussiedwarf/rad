@@ -334,6 +334,10 @@ impl Renderer for RendererOpenGL {
     Ok(Box::new(ShaderOpenGL{id:id}))
   }
 
+  fn load_shader_intermediate(&mut self, a_shader_type: ShaderType, a_source: &std::vec::Vec::<u8>) -> Result<Box<dyn Shader>, RendererError>{
+    return Err(RendererError::Unimplemented)
+  }
+
   fn load_program_vert_frag(&mut self, a_shader_vert: Box<dyn Shader>, a_shader_frag: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>{
     let program_id = unsafe { gl::CreateProgram() };
 
@@ -397,10 +401,7 @@ impl Renderer for RendererOpenGL {
       None => panic!("Invalid shader cast")
     };
 
-    let c_str = match CString::new(a_name){
-      Ok(res) => res,
-      Err(_res) => panic!("Invalid text cast")
-    };
+    let c_str = CString::new(a_name).unwrap();
 
     let location = unsafe{gl::GetUniformLocation(shader.id, c_str.as_ptr())};
 

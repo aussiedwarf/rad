@@ -72,6 +72,7 @@ pub trait Renderer {
   fn get_viewport_size(&self) -> IVec2;
   
   fn load_shader(&mut self, a_shader_type: ShaderType, a_source: &str) -> Result<Box<dyn Shader>, RendererError>;
+  fn load_shader_intermediate(&mut self, a_shader_type: ShaderType, a_source: &std::vec::Vec::<u8>) -> Result<Box<dyn Shader>, RendererError>;
   fn load_program_vert_frag(&mut self, a_shader_vert: Box<dyn Shader>, a_shader_frag: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>;
 
   fn get_uniform(&mut self, a_shader: &mut Box<dyn Program>, a_name: &str) -> Box<dyn UniformShader>;

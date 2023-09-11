@@ -198,6 +198,10 @@ impl Renderer for RendererDirectX12 {
     return Err(RendererError::Unimplemented)
   }
 
+  fn load_shader_intermediate(&mut self, a_shader_type: ShaderType, a_source: &std::vec::Vec::<u8>) -> Result<Box<dyn Shader>, RendererError>{
+    return Err(RendererError::Unimplemented)
+  }
+
   fn load_program_vert_frag(&mut self, _a_shader_vert: Box<dyn Shader>, _a_shader_frag: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>{
     return Err(RendererError::Unimplemented)
   }
