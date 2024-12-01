@@ -23,8 +23,10 @@ pub mod filesystem {
 
         unsafe { libc::fseek(file, 0, libc::SEEK_END) };
 
-        // ftell64 is unix only and _ftelli64 is windows only
-        #[cfg(not(windows))]
+        // ftello may be 32 bit on linux, ftello64 does not exist on apple and _ftelli64 is windows only
+        #[cfg(any(target_os = "macos", target_os = "ios", target_os = "tvos", target_os = "watchos"))]
+        let size = unsafe { libc::ftello(file) };
+        #[cfg(all(not(windows), not(any(target_os = "macos", target_os = "ios", target_os = "tvos", target_os = "watchos"))))]
         let size = unsafe { libc::ftello64(file) };
         #[cfg(windows)]
         let size = unsafe { _ftelli64(file) };
