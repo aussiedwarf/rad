@@ -50,7 +50,7 @@ impl Renderer {
       renderer_types::RendererType::OpenGL => "shaders/gl/",
       renderer_types::RendererType::OpenGLES => "shaders/gles/",
       renderer_types::RendererType::Vulkan => "shaders/spirv/",
-      _ => "shaders/"
+      _ => "shaders/gl/"
     };
 
     let shader_extension = match window.renderer_type {

@@ -4,6 +4,7 @@ pub mod renderer;
 pub mod uniforms;
 pub mod renderer_types;
 pub mod opengl;
+pub mod metal;
 pub mod vulkan;
 pub mod directx;
 pub mod image;
