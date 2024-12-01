@@ -235,16 +235,24 @@ impl MainWindow {
   pub fn init_threads(&mut self) {
     let running_logic = Arc::clone(&self.running);
 
-    self.thread_logic = Some(thread::spawn(move|| {
-      MainWindow::run_logic_loop(running_logic);
-    }));
+    self.thread_logic = Some(thread::Builder::new()
+      .name("logic_thread".to_string())
+      .spawn(move|| {
+        MainWindow::run_logic_loop(running_logic);
+      })
+      .expect("Failed to create logic thread")
+    );
 
     let running_render = Arc::clone(&self.running);
     let window = Arc::clone(&self.window);
 
-    self.thread_render = Some(thread::spawn(move|| {
-      MainWindow::run_render_loop(running_render, window);
-    }));
+    self.thread_render = Some(thread::Builder::new()
+      .name("render_thread".to_string())
+      .spawn(move|| {
+        MainWindow::run_render_loop(running_render, window);
+      })
+      .expect("Failed to create render thread")
+    );
   }
 
   pub fn run_logic() {
