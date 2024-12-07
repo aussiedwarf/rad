@@ -164,6 +164,10 @@ pub struct RendererVulkan {
   current_frame: u32,
   image_index: u32,
 
+  renderer_ready: bool,
+
+  frames_in_flight: std::vec::Vec<bool>,
+
   window: Arc<Mutex<UnsafeSend<sdl2::video::Window>>>,
   
   // Order matters here so that instance is destroyed last
@@ -191,12 +195,35 @@ impl Renderer for RendererVulkan {
     RendererType::Vulkan
   }
 
-  fn begin_frame(&mut self, _clear: RendererClearType){
+  fn begin_frame(&mut self, _clear: RendererClearType) {
+    self.renderer_ready = false;
     let current_frame = self.current_frame as usize;
 
+    let fences = [self.render_fences[current_frame].fence];
+
+    // Wait for frame in flight to finish before using. Also prevents acquire_next_image from using signalled semaphore
+    if self.frames_in_flight[current_frame]
+    {
+      unsafe {
+        self.logical_device
+          .device
+          .wait_for_fences(&fences, true, u64::MAX)
+          .expect("Failed to wait for fences");
+
+        self.logical_device
+          .device
+          .reset_fences(&fences)
+          .expect("Failed to reset fences");
+      }
+      self.frames_in_flight[current_frame] = false;
+    }
+
+    // need to attempt to acquire multiple times incase it fails and we need to recreate the swapchain
     let mut attempt = true;
-    while attempt && self.swapchain.extent.width > 0 && self.swapchain.extent.height > 0{
+    let mut num_attempts = 2;
+    while num_attempts > 0 && attempt && self.swapchain.extent.width > 0 && self.swapchain.extent.height > 0{
       attempt = false;
+      num_attempts = num_attempts - 1;
 
       let (image_index, _suboptimal) = unsafe { match self.swapchain.swapchain.swapchain_loader.acquire_next_image(
         self.swapchain.swapchain.swapchain, 
@@ -204,35 +231,25 @@ impl Renderer for RendererVulkan {
         self.image_available_semaphores[current_frame].semaphore, 
         ash::vk::Fence::null()) {
           Ok(res) => res,
-          Err(res) if res == ash::vk::Result::ERROR_OUT_OF_DATE_KHR => {
+          Err(res) if res == ash::vk::Result::ERROR_OUT_OF_DATE_KHR || res == ash::vk::Result::SUBOPTIMAL_KHR => {
             self.recreate_swapchain();
             attempt = true;
-            (0,true)
+            (0,false)
           },
           Err(res) => {
             println!("Error: reset_command_buffer: {}", res);
             return
           }
-      }};
+      }}; 
 
       self.image_index = image_index;
     }
 
-    if self.swapchain.extent.width > 0 && self.swapchain.extent.height > 0{
-      
-      let fences = [self.render_fences[current_frame].fence];
-      // TODO handle result
-      match unsafe { self.logical_device.device.wait_for_fences(&fences, true, u64::MAX) }{
-        Ok(_) => {},
-        Err(res) => {println!("Error: wait_for_fences {}", res)}
-      };
+    if num_attempts < 0 {
+      return
+    }
 
-      // TODO handle result
-      match unsafe { self.logical_device.device.reset_fences(&fences) }{
-        Ok(_) => {},
-        Err(res) => {println!("Error: reset_fences {}", res)}
-      };
-      
+    if self.swapchain.extent.width > 0 && self.swapchain.extent.height > 0{
       match unsafe {self.logical_device.device.reset_command_buffer(self.command_buffers[current_frame], ash::vk::CommandBufferResetFlags::empty())}{
         Ok(_) => {},
         Err(res) => {println!("Error: reset_command_buffer {}", res)}
@@ -276,14 +293,19 @@ impl Renderer for RendererVulkan {
         self.command_buffers[current_frame], 
         0, 
         &scissors)};
+
+      self.renderer_ready = true;
     }
   }
 
   fn end_frame(&mut self){
+    
     let current_frame = self.current_frame as usize;
     let mut recreate = false;
 
-    if self.swapchain.extent.width > 0 && self.swapchain.extent.height > 0{
+    if self.renderer_ready &&self.swapchain.extent.width > 0 && self.swapchain.extent.height > 0 {
+      self.renderer_ready = false;
+
       unsafe { self.logical_device.device.cmd_end_render_pass(self.command_buffers[current_frame])};
     
       // TODO handle result
@@ -296,6 +318,10 @@ impl Renderer for RendererVulkan {
       let wait_stages = [ ash::vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT ];
       let signal_semaphores = [ self.render_finished_semaphores[current_frame].semaphore ];
 
+      if self.frames_in_flight[current_frame]
+      {
+        println!("Error: frames_in_flight {}", current_frame);
+      }
       let submit_info = ash::vk::SubmitInfo::builder()
         .wait_semaphores(&wait_semaphores)
         .wait_dst_stage_mask(&wait_stages)
@@ -310,6 +336,8 @@ impl Renderer for RendererVulkan {
         Ok(_) => {},
         Err(res) => {println!("Error: queue_submit {}", res)}
       };
+
+      self.frames_in_flight[current_frame] = true;
 
       let swapchains = [self.swapchain.swapchain.swapchain];
       let image_indices = [self.image_index];
@@ -332,6 +360,7 @@ impl Renderer for RendererVulkan {
       self.current_frame = (self.current_frame + 1) % Self::MAX_FRAMES;
     }
     else {
+      self.renderer_ready = false;
       recreate = true;
     }
 
@@ -599,6 +628,9 @@ impl Renderer for RendererVulkan {
 
   fn draw_geometry(&mut self, _geometry: &Box<dyn Geometry>){}
   fn draw_mesh(&mut self, _camera: &Camera, a_mesh: &mut Box<Mesh>){
+    if !self.renderer_ready{
+      return
+    }
     // let geometry = match a_mesh.geometry.any().downcast_ref::<GeometryVulkan>() {
     //   Some(res) => res,
     //   None => return
@@ -715,6 +747,8 @@ impl RendererVulkan{
     let mut render_finished_semaphores = std::vec::Vec::<Semaphore>::new();
     let mut render_fences = std::vec::Vec::<Fence>::new();
 
+    let mut frames_in_flight = std::vec::Vec::<bool>::new();
+
     for _ in 0..Self::MAX_FRAMES{
       image_available_semaphores.push( match Semaphore::new(logical_device.clone()){
         Ok(res) => res,
@@ -728,6 +762,8 @@ impl RendererVulkan{
         Ok(res) => res,
         Err(_res) => return Err(RendererError::Error)
       });
+
+      frames_in_flight.push(false);
     }
 
     Ok(Self {
@@ -739,6 +775,8 @@ impl RendererVulkan{
       clear_stencil: 0,
       current_frame: 0,
       image_index: 0,
+      renderer_ready: false,
+      frames_in_flight: frames_in_flight,
       window: a_window,
       framebuffer_format: format,
       image_available_semaphores: image_available_semaphores,
