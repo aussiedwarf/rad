@@ -4,10 +4,16 @@ use std::ffi::{CString};
 use std::rc::Rc;
 use std::sync::Arc;
 use glam::*;
+
+#[cfg(target_vendor = "apple")]
 use metal::*;
+#[cfg(target_vendor = "apple")]
 use metal::foreign_types::ForeignType;
+#[cfg(target_vendor = "apple")]
 use objc::msg_send;
+#[cfg(target_vendor = "apple")]
 use objc::sel;
+#[cfg(target_vendor = "apple")]
 use objc::sel_impl;
 
 use crate::gpu::renderer::*;
@@ -153,7 +159,9 @@ pub struct RendererMetal {
 
   window: Arc<Window>,
 
+  #[cfg(target_vendor = "apple")]
   device: Device,
+  #[cfg(target_vendor = "apple")]
   metal_view: *mut core::ffi::c_void, //TODO destroy with SDL_Metal_DestroyView
   //metal_layer: CAMetalLayer,
 
@@ -305,6 +313,15 @@ impl Renderer for RendererMetal {
 
 #[allow(dead_code)]
 impl RendererMetal {
+  #[cfg(not(target_vendor = "apple"))]
+  pub fn new(
+    a_video_subsystem: &sdl2::VideoSubsystem, 
+    a_window: Arc<Window>) -> Result<Self, RendererError>
+  {
+    Err(RendererError::UnsupportedAPI)
+  }
+
+  #[cfg(target_vendor = "apple")]
   pub fn new(
     a_video_subsystem: &sdl2::VideoSubsystem, 
     a_window: Arc<Window>) -> Result<Self, RendererError>
@@ -378,6 +395,7 @@ impl RendererMetal {
     })
   }
 
+  #[cfg(target_vendor = "apple")]
   fn create_metal_view(window: &sdl2::video::Window) -> *mut core::ffi::c_void {
     unsafe {
         let raw_window = window.raw() as *mut sdl2::sys::SDL_Window;
@@ -391,6 +409,7 @@ impl RendererMetal {
     }
   }
 
+  #[cfg(target_vendor = "apple")]
   fn get_metal_layer(metal_view: *mut core::ffi::c_void) -> *mut core::ffi::c_void {
       unsafe {
           let layer = sdl2::sys::SDL_Metal_GetLayer(metal_view);
@@ -403,6 +422,7 @@ impl RendererMetal {
       }
   }
 
+  #[cfg(target_vendor = "apple")]
   fn configure_metal_layer(layer: *mut core::ffi::c_void, device_ptr: *mut objc::runtime::Object /*device: &metal::Device*/) {
     let metal_layer: *mut objc::runtime::Object = layer as *mut objc::runtime::Object;
 
