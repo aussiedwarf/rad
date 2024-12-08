@@ -48,7 +48,7 @@ impl Swapchain{
       } };
 
     let mut min_image_count = surface_capabilities.min_image_count + 1;
-    if (surface_capabilities.max_image_count > 0 && min_image_count > surface_capabilities.max_image_count)
+    if surface_capabilities.max_image_count > 0 && min_image_count > surface_capabilities.max_image_count
 		{
 			min_image_count = surface_capabilities.max_image_count;
 		}
