@@ -4,8 +4,14 @@ use std::ffi::{CString};
 use std::rc::Rc;
 use std::sync::Arc;
 use glam::*;
+use metal::*;
+use metal::foreign_types::ForeignType;
+use objc::msg_send;
+use objc::sel;
+use objc::sel_impl;
 
 use crate::gpu::renderer::*;
+use crate::gpu::renderer::Texture;
 use crate::gpu::renderer_types::*;
 use crate::gpu::material::*;
 use crate::gpu::camera::*;
@@ -146,6 +152,10 @@ impl UniformShader for UniformShaderMetal {
 pub struct RendererMetal {
 
   window: Arc<Window>,
+
+  device: Device,
+  metal_view: *mut core::ffi::c_void, //TODO destroy with SDL_Metal_DestroyView
+  //metal_layer: CAMetalLayer,
 
   clear_color: Vec4,
   clear_depth: f32,
@@ -299,10 +309,67 @@ impl RendererMetal {
     a_video_subsystem: &sdl2::VideoSubsystem, 
     a_window: Arc<Window>) -> Result<Self, RendererError>
   {
+    let is_main_thread: bool = unsafe { objc::msg_send![objc::class!(NSThread), isMainThread] };
+    if !is_main_thread {
+        panic!("setDevice must be called on the main thread.");
+    }
     
+    let devices = Device::all();
+    assert!(!devices.is_empty(), "No Metal devices found!");
+
+    for (i, device) in devices.iter().enumerate() {
+        println!("Device {}: {}", i, device.name());
+    }
+
+    let device = Device::system_default().expect("Failed to create Metal device");
+
+    println!("Metal Device Name: {}", device.name());
+    println!(
+      "Metal Device Supports Feature Set: {:?}",
+      device.supports_feature_set(metal::MTLFeatureSet::iOS_GPUFamily1_v1)
+    );
+
+    // TODO Enable device selection
+    // let selected_device = devices
+    //   .into_iter()
+    //   .find(|device| !device.is_low_power())
+    //   .unwrap_or_else(|| Device::system_default().expect("Failed to create Metal device"));
+
+    // println!("Selected Device: {}", selected_device.name());
+
+    let view = RendererMetal::create_metal_view(&a_window.window.lock().unwrap().inner);
+    let layer = RendererMetal::get_metal_layer(view) as *mut objc::runtime::Object;
+
+    let is_metal_layer: bool = unsafe { objc::msg_send![layer, isKindOfClass: objc::class!(CAMetalLayer)] };
+    if !is_metal_layer {
+        panic!("The provided layer is not a CAMetalLayer.");
+    }
+
+    println!("CAMetalLayer Pointer: {:?}", layer);
+
+    // unsafe {
+    //   let _: () = msg_send![layer, setDevice: device];
+    //   let _: () = msg_send![layer, setPixelFormat: MTLPixelFormat::BGRA8Unorm];
+    //   let _: () = msg_send![layer, setFramebufferOnly: true];
+    // }
+
+    RendererMetal::configure_metal_layer(layer as *mut core::ffi::c_void, device.as_ptr() as *mut objc::runtime::Object);
+    //RendererMetal::configure_metal_layer(layer as *mut core::ffi::c_void, &device);
+
+    // let ns_view = RendererMetal::get_nsview(&a_window.window.lock().unwrap().inner) as id;
+
+    // let metal_layer: CAMetalLayer = unsafe { msg_send![ns_view, layer] };
+
+
+    // metal_layer.set_device(&device);
+    // metal_layer.set_pixel_format(MTLPixelFormat::BGRA8Unorm);
+    // metal_layer.set_framebuffer_only(true);
 
     Ok(Self {
       window: a_window,
+      device: device,
+      //metal_layer: metal_layer,
+      metal_view: view, 
       clear_color: Vec4::new(0.0, 0.0, 0.0, 0.0),
       clear_depth: 1.0,
       clear_stencil: 0,
@@ -310,6 +377,87 @@ impl RendererMetal {
       viewport_size: IVec2::new(0,0),
     })
   }
+
+  fn create_metal_view(window: &sdl2::video::Window) -> *mut core::ffi::c_void {
+    unsafe {
+        let raw_window = window.raw() as *mut sdl2::sys::SDL_Window;
+        let metal_view = sdl2::sys::SDL_Metal_CreateView(raw_window);
+
+        if metal_view.is_null() {
+            panic!("Failed to create Metal view");
+        }
+
+        metal_view
+    }
+  }
+
+  fn get_metal_layer(metal_view: *mut core::ffi::c_void) -> *mut core::ffi::c_void {
+      unsafe {
+          let layer = sdl2::sys::SDL_Metal_GetLayer(metal_view);
+
+          if layer.is_null() {
+              panic!("Failed to retrieve CAMetalLayer");
+          }
+
+          layer
+      }
+  }
+
+  fn configure_metal_layer(layer: *mut core::ffi::c_void, device_ptr: *mut objc::runtime::Object /*device: &metal::Device*/) {
+    let metal_layer: *mut objc::runtime::Object = layer as *mut objc::runtime::Object;
+
+    unsafe {
+      let _: () = msg_send![metal_layer, setDevice: device_ptr];
+      let _: () = msg_send![metal_layer, setPixelFormat: MTLPixelFormat::BGRA8Unorm];
+      let _: () = msg_send![metal_layer, setFramebufferOnly: true];
+    }
+
+    // unsafe {
+    //   let _: () = msg_send![metal_layer, setDevice: device];
+    //   let _: () = msg_send![metal_layer, setPixelFormat: MTLPixelFormat::BGRA8Unorm];
+    //   let _: () = msg_send![metal_layer, setFramebufferOnly: true];
+    // }
+  } 
+
+  // attemopt at getting view. can probably delete
+  fn get_nsview(window: &sdl2::video::Window) -> *mut std::ffi::c_void {
+    let mut wm_info: sdl2::sys::SDL_SysWMinfo = unsafe { std::mem::zeroed() };
+    wm_info.version.major = sdl2::version::version().major;
+    wm_info.version.minor = sdl2::version::version().minor;
+    wm_info.version.patch = sdl2::version::version().patch;
+
+    unsafe {
+      if sdl2::sys::SDL_GetWindowWMInfo(window.raw() as *mut sdl2::sys::SDL_Window, &mut wm_info as *mut _) == sdl2::sys::SDL_bool::SDL_TRUE {
+        // rust sdl package is missing apple and windows in SDL_SysWMinfo
+        // bindgen supposedly adds it but sdl does not then compile
+        match wm_info.subsystem {
+          sdl2::sys::SDL_SYSWM_TYPE::SDL_SYSWM_COCOA => {
+            // On macOS, the handle will be an NSView with a CAMetalLayer attached.
+            // wm_info.info.cocoa.window as *mut _
+            let inner_info = unsafe{wm_info.info.dummy};
+            let view_ptr = inner_info.as_ptr() as *const *mut std::ffi::c_void;
+            let view = unsafe{std::ptr::read_unaligned(view_ptr)};
+            if view.is_null() {
+              panic!("NSView pointer is null");
+            }
+            view
+          },
+          sdl2::sys::SDL_SYSWM_TYPE::SDL_SYSWM_UIKIT => {
+            // On iOS, the handle will be a UIView with a CAMetalLayer attached.
+            // wm_info.info.uikit.window as *mut _
+            let inner_info = unsafe{wm_info.info.dummy};
+            let view_ptr = inner_info.as_ptr() as *const *mut std::ffi::c_void;
+            let view = unsafe{std::ptr::read_unaligned(view_ptr)};
+            view
+          },
+          _ => std::ptr::null_mut(),
+        }
+      } else {
+        std::ptr::null_mut()
+      }
+    }
+  }
+    
 
   pub fn update_uniform(&self, a_uniform: &mut Box<dyn Uniform>){
   }

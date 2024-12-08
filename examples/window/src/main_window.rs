@@ -243,16 +243,20 @@ impl MainWindow {
       .expect("Failed to create logic thread")
     );
 
-    let running_render = Arc::clone(&self.running);
-    let window = Arc::clone(&self.window);
+    // TODO run on separate thread for apple
+    #[cfg(not(target_vendor = "apple"))]
+    {
+      let running_render = Arc::clone(&self.running);
+      let window = Arc::clone(&self.window);
 
-    self.thread_render = Some(thread::Builder::new()
-      .name("render_thread".to_string())
-      .spawn(move|| {
-        MainWindow::run_render_loop(running_render, window);
-      })
-      .expect("Failed to create render thread")
-    );
+      self.thread_render = Some(thread::Builder::new()
+        .name("render_thread".to_string())
+        .spawn(move|| {
+          MainWindow::run_render_loop(running_render, window);
+        })
+        .expect("Failed to create render thread")
+      );
+    }
   }
 
   pub fn run_logic() {
@@ -286,21 +290,28 @@ impl MainWindow {
     }
     println!{"Thread Render done"};
   }
-  
-  #[cfg(not(target_os = "emscripten"))]
-  pub fn init(&mut self) {
-    self.init_threads();
-  }
 
-  #[cfg(target_os = "emscripten")]
-  pub fn init(&mut self) {
-
+  fn init_renderer(&mut self) {
     let mut renderer = match Renderer::new(Arc::clone(&self.window)){
       Ok(res) => res,
       Err(_res) => return
     };
 
     self.renderer = Some(renderer);
+  }
+  
+  #[cfg(not(target_os = "emscripten"))]
+  pub fn init(&mut self) {
+    self.init_threads();
+
+    // TODO init renderer on different thread on apple
+    #[cfg(target_vendor = "apple")]
+    self.init_renderer();
+  }
+
+  #[cfg(target_os = "emscripten")]
+  pub fn init(&mut self) {
+    init_renderer();
   }
   
   pub fn run_events(&mut self) -> bool {
@@ -332,6 +343,7 @@ impl MainWindow {
     self.signal_quit();
 
     self.thread_logic.take().unwrap().join().unwrap();
+    #[cfg(not(target_vendor = "apple"))]
     self.thread_render.take().unwrap().join().unwrap();
   }
 
@@ -345,6 +357,10 @@ impl MainLoop for MainWindow {
       self.signal_quit();
       return MainLoopEvent::Terminate
     }
+
+    #[cfg(target_vendor = "apple")]
+    self.renderer.as_mut().unwrap().run();
+
     std::thread::sleep(Duration::new(0, 1));
     return MainLoopEvent::Continue
   }
