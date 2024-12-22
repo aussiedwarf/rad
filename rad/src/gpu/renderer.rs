@@ -6,16 +6,18 @@ use crate::gpu::uniforms::*;
 use crate::gpu::material::*;
 use crate::gpu::camera::*;
 use crate::gpu::image::*;
+use crate::gpu::resource::*;
 
 use glam::*;
+use std::cell::RefCell;
 use std::rc::Rc;
+// use std::sync::Arc;
 
 pub trait Program{
   fn any(&self) -> &dyn std::any::Any;
 
   fn get_uniform(&self, a_name: &str, a_data: UniformData) -> Box<dyn Uniform>;
 }
-
 
 pub trait Shader{
   fn any(&self) -> &dyn std::any::Any;
@@ -40,6 +42,8 @@ pub struct Mesh{
   pub geometry: Box<dyn Geometry>,
   pub material: Box<dyn Material>
 }
+
+impl Resource for Mesh {}
 
 pub trait Renderer {
   fn name(&self) -> String;
@@ -86,7 +90,7 @@ pub trait Renderer {
 
   fn gen_geometry(&mut self, a_buffer: &Box<dyn Vertices>) -> Box<dyn Geometry>;
 
-  fn gen_mesh(&mut self, a_geometry: Box<dyn Geometry>, a_material: Box<dyn Material>) -> Box<Mesh>;
+  fn gen_mesh(&mut self, a_geometry: Box<dyn Geometry>, a_material: Box<dyn Material>) -> Rc<RefCell<Mesh>>;
 
   //fn gen_instances(&mut self, Box<Mesh>, u32 a_num_instances) -> Box<Instances>;  //should return instances object, or vector of instances?
 
@@ -99,7 +103,7 @@ pub trait Renderer {
   fn use_program(&mut self, a_program: &Box<dyn Program>);
 
   fn draw_geometry(&mut self, a_geometry: &Box<dyn Geometry>);
-  fn draw_mesh(&mut self, a_camera: &Camera, a_mesh: &mut Box<Mesh>);
+  fn draw_mesh(&mut self, a_camera: &Camera, a_mesh: Rc<RefCell<Mesh>>);
 
   fn read_render_buffer(&mut self) -> Image;
 

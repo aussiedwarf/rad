@@ -3,6 +3,8 @@ use crate::gpu::renderer::*;
 use crate::gpu::uniforms::*;
 
 use glam::*;
+// use std::rc::Rc;
+// use std::sync::Arc;
 
 pub trait Material{
   fn any(&self) -> &dyn std::any::Any;
@@ -63,17 +65,17 @@ pub struct MaterialBasic{
 #[allow(dead_code)]
 impl MaterialBasic{
   pub fn new(a_program: Box<dyn Program>, a_sampler: Box<dyn Sampler>) -> Self{
-    let mut samplers = std::vec::Vec::new();
+    let mut samplers: Vec<Box<dyn Sampler>> = std::vec::Vec::new();
     let mut uniforms: Vec<Box<dyn Uniform>> = std::vec::Vec::new();
 
     samplers.push(a_sampler);
+    samplers[0].set_name("u_color");
     
     let uniform_mvp = a_program.get_uniform("u_mvp", UniformData::new(Mat4::IDENTITY));
 
     uniforms.push(uniform_mvp);
 
     let mut material = MaterialBasic{program: a_program, uniforms: uniforms, samplers: samplers, mvp: Mat4::IDENTITY};
-    material.samplers[0].set_name("u_color");
 
     material
   }

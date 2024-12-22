@@ -1,6 +1,7 @@
 
 
 use std::ffi::{CString};
+use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 use glam::*;
@@ -266,11 +267,11 @@ impl Renderer for RendererMetal {
     Box::new(GeometryMetal{})
   }
 
-  fn gen_mesh(&mut self, a_geometry: Box<dyn Geometry>, a_material: Box<dyn Material>) -> Box<Mesh>{
-    Box::new(Mesh{
+  fn gen_mesh(&mut self, a_geometry: Box<dyn Geometry>, a_material: Box<dyn Material>) -> Rc<RefCell<Mesh>>{
+    Rc::new(RefCell::new(Mesh{
       geometry: a_geometry,
       material: a_material
-      })
+      }))
   }
 
   fn gen_buffer_texture(&mut self) -> Box<dyn Texture>{
@@ -295,7 +296,7 @@ impl Renderer for RendererMetal {
     
   }
 
-  fn draw_mesh(&mut self, _camera: &Camera, a_mesh: &mut Box<Mesh>){
+  fn draw_mesh(&mut self, _camera: &Camera, a_mesh: Rc<RefCell<Mesh>>){
     
   }
 

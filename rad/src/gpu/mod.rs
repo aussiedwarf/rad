@@ -3,6 +3,7 @@ pub mod material;
 pub mod renderer;
 pub mod uniforms;
 pub mod renderer_types;
+pub mod resource;
 pub mod opengl;
 pub mod metal;
 pub mod vulkan;

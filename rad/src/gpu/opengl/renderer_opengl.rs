@@ -3,6 +3,7 @@
 extern crate gl;
 
 use std::ffi::{CString};
+use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
 use glam::*;
@@ -495,11 +496,11 @@ impl Renderer for RendererOpenGL {
     Box::new(GeometryOpenGL{vao:vao, num: buffer.num})
   }
 
-  fn gen_mesh(&mut self, a_geometry: Box<dyn Geometry>, a_material: Box<dyn Material>) -> Box<Mesh>{
-    Box::new(Mesh{
+  fn gen_mesh(&mut self, a_geometry: Box<dyn Geometry>, a_material: Box<dyn Material>) -> Rc<RefCell<Mesh>>{
+    Rc::new(RefCell::new(Mesh{
       geometry: a_geometry,
       material: a_material
-      })
+      }))
   }
 
 
@@ -588,38 +589,49 @@ impl Renderer for RendererOpenGL {
     }
   }
 
-  fn draw_mesh(&mut self, _camera: &Camera, a_mesh: &mut Box<Mesh>){
-    let geometry = match a_mesh.geometry.any().downcast_ref::<GeometryOpenGL>() {
-      Some(res) => res,
-      None => panic!("Invalid vertex")
-    };
+  fn draw_mesh(&mut self, _camera: &Camera, a_mesh: Rc<RefCell<Mesh>>){
+    
+    let mut num_indices = 0;
+    {
+      let mesh = a_mesh.borrow_mut();
+      let geometry = match mesh.geometry.any().downcast_ref::<GeometryOpenGL>() {
+        Some(res) => res,
+        None => panic!("Invalid vertex")
+      };
 
-    self.use_program(a_mesh.material.get_program());
+      num_indices = geometry.num;
 
-    if self.vao != geometry.vao as gl::types::GLint{
-      self.vao = geometry.vao as gl::types::GLint;
+      self.use_program(mesh.material.get_program());
 
-      unsafe {
-        gl::BindVertexArray(geometry.vao);
+      if self.vao != geometry.vao as gl::types::GLint{
+        self.vao = geometry.vao as gl::types::GLint;
+
+        unsafe {
+          gl::BindVertexArray(geometry.vao);
+        }
       }
     }
 
-    let num_uniforms = a_mesh.material.num_uniforms();
-    for i in 0..num_uniforms {
-      self.update_uniform(a_mesh.material.get_uniform(i));
-    }
+    {
+      let mut mesh = a_mesh.borrow_mut();
+      let num_uniforms = mesh.material.num_uniforms();
+      for i in 0..num_uniforms {
+        let uniform = mesh.material.get_uniform(i);
+        self.update_uniform(uniform);
+      }
 
-    let num_samplers = a_mesh.material.num_samplers();
-    for i in 0..num_samplers {
-      self.update_sampler(a_mesh.material.get_sampler(i));
-    }
+      let num_samplers = mesh.material.num_samplers();
+      for i in 0..num_samplers {
+        self.update_sampler(&mut mesh.material.get_sampler(i));
+      }
 
-    unsafe {
-      gl::DrawArrays(
-        gl::TRIANGLES, // mode
-        0, // starting index in the enabled arrays
-        geometry.num // number of indices to be rendered
-      );
+      unsafe {
+        gl::DrawArrays(
+          gl::TRIANGLES, // mode
+          0, // starting index in the enabled arrays
+          num_indices // number of indices to be rendered
+        );
+      }
     }
   }
 
@@ -694,7 +706,7 @@ impl RendererOpenGL {
       Some(res) => res,
       None => panic!("Invalid uniform cast")
     };
-
+    
     if uniform.modified {
       match uniform.data.info.element_type {
         ElementType::Float32 => {

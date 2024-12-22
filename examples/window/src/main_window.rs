@@ -20,6 +20,8 @@ use rad::core::filesystem::{filesystem};
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use std::time::Duration;
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -28,7 +30,7 @@ use glam::*;
 
 struct Renderer{
   camera: Camera,
-  mesh: Box<renderer::Mesh>,
+  mesh: Rc<RefCell<renderer::Mesh>>,
   renderer: Box<dyn renderer::Renderer>,
   window: Arc<Window>,
 }
@@ -195,7 +197,7 @@ impl Renderer {
 
     self.renderer.begin_frame(renderer_types::RendererClearType::COLOR);
 
-    self.renderer.draw_mesh(&self.camera, &mut self.mesh);
+    self.renderer.draw_mesh(&self.camera, self.mesh.clone());
 
     self.renderer.end_frame();
   }

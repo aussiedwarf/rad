@@ -9,7 +9,9 @@ use crate::gpu::directx::renderer_common::*;
 use crate::gpu::image::*;
 
 use std::result::Result;
+use std::cell::RefCell;
 use std::rc::Rc;
+// use std::sync::Arc;
 use std::vec::Vec;
 
 use glam::*;
@@ -220,11 +222,11 @@ impl Renderer for RendererDirectX12 {
     Box::new(GeometryDirectX12{})
   }
 
-  fn gen_mesh(&mut self, a_geometry: Box<dyn Geometry>, a_material: Box<dyn Material>) -> Box<Mesh>{
-    Box::new(Mesh{
+  fn gen_mesh(&mut self, a_geometry: Box<dyn Geometry>, a_material: Box<dyn Material>) -> Rc<RefCell<Mesh>>{
+    Rc::new(RefCell::new(Mesh{
       geometry: a_geometry,
       material: a_material
-      })
+      }))
   }
 
   fn gen_buffer_texture(&mut self) -> Box<dyn Texture>{
@@ -249,7 +251,7 @@ impl Renderer for RendererDirectX12 {
 
   }
 
-  fn draw_mesh(&mut self, _a_camera: &Camera, _a_mesh: &mut Box<Mesh>){
+  fn draw_mesh(&mut self, _a_camera: &Camera, _a_mesh: Rc<RefCell<Mesh>>){
 
   }
 
@@ -270,7 +272,7 @@ impl RendererDirectX12 {
   }
 
   #[cfg(windows)]
-  pub fn new(a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> Result<Self, RendererError>{
+  pub fn new(_a_video_subsystem: &sdl2::VideoSubsystem, a_window: &sdl2::video::Window) -> Result<Self, RendererError>{
 
     let factory = match get_factory(){
       Ok(res) => res,
@@ -402,7 +404,7 @@ impl RendererDirectX12 {
       back_buffers.push(back_buffer);
     }
 
-    let buffer_index = unsafe{ swap_chain3.GetCurrentBackBufferIndex() };
+    let _buffer_index = unsafe{ swap_chain3.GetCurrentBackBufferIndex() };
 
     let command_allocator = match unsafe{ device.CreateCommandAllocator::<ID3D12CommandAllocator>(D3D12_COMMAND_LIST_TYPE_DIRECT)}{
       Ok(res) => res,
@@ -433,7 +435,7 @@ impl RendererDirectX12 {
     }
 
     // Create a fence for GPU synchronization.
-    let fence: ID3D12Fence = match unsafe {device.CreateFence(0, D3D12_FENCE_FLAG_NONE)}{
+    let _fence: ID3D12Fence = match unsafe {device.CreateFence(0, D3D12_FENCE_FLAG_NONE)}{
       Ok(res) => res,
       Err(_res) => return Err(RendererError::Error)
     };
@@ -446,7 +448,7 @@ impl RendererDirectX12 {
     // }
 
     // Initialize the starting fence value. 
-    let fence_value = 1u64;
+    let _fence_value = 1u64;
 
 
     Ok(Self {
@@ -471,7 +473,7 @@ impl RendererDirectX12 {
     };
 
     match unsafe {D3D12CreateDevice(&adapter, feature_level, &mut device)}{
-      Ok(res) => {},
+      Ok(_res) => {},
       Err(_res) => return Err(RendererError::Error)
     };
 

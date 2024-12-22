@@ -1,5 +1,6 @@
 use ash::{vk, Entry};
 use glam::*;
+use std::cell::RefCell;
 use std::rc::Rc;
 
 use crate::core::unsafe_send::UnsafeSend;
@@ -17,6 +18,7 @@ use crate::gpu::material::*;
 use crate::gpu::camera::*;
 use crate::gpu::uniforms::*;
 use crate::gpu::image::*;
+use crate::gpu::resource::*;
 use std::ffi::CString;
 use std::sync::Mutex;
 use std::sync::Arc;
@@ -168,6 +170,8 @@ pub struct RendererVulkan {
 
   frames_in_flight: std::vec::Vec<bool>,
 
+  resources: std::vec::Vec<std::vec::Vec<Rc<RefCell<dyn Resource>>>>,
+
   window: Arc<Mutex<UnsafeSend<sdl2::video::Window>>>,
   
   // Order matters here so that instance is destroyed last
@@ -215,6 +219,8 @@ impl Renderer for RendererVulkan {
           .reset_fences(&fences)
           .expect("Failed to reset fences");
       }
+      self.resources[current_frame].clear();
+
       self.frames_in_flight[current_frame] = false;
     }
 
@@ -605,11 +611,11 @@ impl Renderer for RendererVulkan {
     Box::new(GeometryVulkan{id: 0})
   }
 
-  fn gen_mesh(&mut self, a_geometry: Box<dyn Geometry>, a_material: Box<dyn Material>) -> Box<Mesh>{
-    Box::new(Mesh{
+  fn gen_mesh(&mut self, a_geometry: Box<dyn Geometry>, a_material: Box<dyn Material>) -> Rc<RefCell<Mesh>>{
+    Rc::new(RefCell::new(Mesh {
       geometry: a_geometry,
-      material: a_material
-      })
+      material: a_material,
+    }))
   }
 
 
@@ -627,7 +633,7 @@ impl Renderer for RendererVulkan {
   fn use_program(&mut self, _program: &Box<dyn Program>){}
 
   fn draw_geometry(&mut self, _geometry: &Box<dyn Geometry>){}
-  fn draw_mesh(&mut self, _camera: &Camera, a_mesh: &mut Box<Mesh>){
+  fn draw_mesh(&mut self, _camera: &Camera, a_mesh: Rc<RefCell<Mesh>>){
     if !self.renderer_ready{
       return
     }
@@ -635,21 +641,26 @@ impl Renderer for RendererVulkan {
     //   Some(res) => res,
     //   None => return
     // };
-
-    let program = match a_mesh.material.get_program().any().downcast_ref::<ProgramVulkan>(){
+    let mesh = a_mesh.borrow();
+    let program_rc = mesh.material.get_program();
+    let program = match program_rc.any().downcast_ref::<ProgramVulkan>(){
       Some(res) => res,
       None => return
     };
 
+    let current_frame = self.current_frame as usize;
+
     unsafe { 
       // TODO Only set pipeline if not already set
       self.logical_device.device.cmd_bind_pipeline(
-      self.command_buffers[self.current_frame as usize],
+      self.command_buffers[current_frame],
       ash::vk::PipelineBindPoint::GRAPHICS, 
       program.pipeline);
 
-      self.logical_device.device.cmd_draw(self.command_buffers[self.current_frame as usize], 3, 1, 0, 0);
+      self.logical_device.device.cmd_draw(self.command_buffers[current_frame], 3, 1, 0, 0);
     }
+
+    self.resources[current_frame].push(a_mesh.clone());
   }
 
   fn read_render_buffer(&mut self) -> Image{
@@ -748,6 +759,7 @@ impl RendererVulkan{
     let mut render_fences = std::vec::Vec::<Fence>::new();
 
     let mut frames_in_flight = std::vec::Vec::<bool>::new();
+    let mut resources = std::vec::Vec::<std::vec::Vec::<Rc<RefCell<dyn Resource>>>>::new();
 
     for _ in 0..Self::MAX_FRAMES{
       image_available_semaphores.push( match Semaphore::new(logical_device.clone()){
@@ -764,6 +776,7 @@ impl RendererVulkan{
       });
 
       frames_in_flight.push(false);
+      resources.push(std::vec::Vec::<Rc<RefCell<dyn Resource>>>::new());
     }
 
     Ok(Self {
@@ -778,6 +791,7 @@ impl RendererVulkan{
       renderer_ready: false,
       frames_in_flight: frames_in_flight,
       window: a_window,
+      resources: resources,
       framebuffer_format: format,
       image_available_semaphores: image_available_semaphores,
       render_finished_semaphores: render_finished_semaphores,
