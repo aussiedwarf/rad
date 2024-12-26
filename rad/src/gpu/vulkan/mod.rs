@@ -8,6 +8,7 @@ pub mod instance;
 pub mod render_pass;
 pub mod renderer_vulkan;
 pub mod semaphore;
+pub mod shader;
 pub mod surface;
 pub mod swapchain;
 pub mod util;
