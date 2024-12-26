@@ -20,6 +20,7 @@ use crate::gpu::camera::*;
 use crate::gpu::command_list::*;
 use crate::gpu::image::*;
 use crate::gpu::material::*;
+use crate::gpu::mesh::*;
 use crate::gpu::renderer::*;
 use crate::gpu::renderer_types::*;
 use crate::gpu::resource::*;
@@ -189,6 +190,7 @@ pub struct RendererVulkan {
     render_finished_semaphores: std::vec::Vec<Semaphore>,
     render_fences: std::vec::Vec<Fence>,
     command_buffers: std::vec::Vec<ash::vk::CommandBuffer>,
+    #[allow(dead_code)] // Holds the command buffers which are destroyed if the pool is destroyed
     command_pool: CommandPool,
     swapchain: Swapchain,
     render_pass: RenderPass,
@@ -731,7 +733,14 @@ impl Renderer for RendererVulkan {
         CommandListVulkan::new()
     }
 
-    fn submit_command_list(&mut self, _a_command_list: Box<dyn CommandList>) {}
+    fn submit_command_list(&mut self, a_command_list: Box<dyn CommandList>) {
+        let command_list = match a_command_list.any().downcast_ref::<CommandListVulkan>() {
+            Some(res) => res,
+            None => panic!("Invalid command list cast to vulkan")
+        };
+
+
+    }
 
     fn gen_buffer_vertex(&mut self, _verts: &std::vec::Vec<f32>) -> Box<dyn Vertices> {
         Box::new(VerticesVulkan { id: 0 })

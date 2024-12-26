@@ -6,6 +6,7 @@ use crate::gpu::command_list::*;
 use crate::gpu::directx::renderer_common::*;
 use crate::gpu::image::*;
 use crate::gpu::material::*;
+use crate::gpu::mesh::*;
 use crate::gpu::renderer::*;
 use crate::gpu::renderer_types::*;
 use crate::gpu::uniforms::*;
@@ -207,7 +208,7 @@ impl Renderer for RendererDirectX12 {
 
     fn get_uniform(
         &mut self,
-        a_shader: &mut Box<dyn Program>,
+        _a_shader: &mut Box<dyn Program>,
         a_name: &str,
     ) -> Box<dyn UniformShader> {
         Box::new(UniformShaderDirectX12 {
@@ -254,7 +255,7 @@ impl Renderer for RendererDirectX12 {
         })
     }
 
-    fn load_texture(&mut self, _a_image: &image::DynamicImage, a_texture: &mut Box<dyn Texture>) {}
+    fn load_texture(&mut self, _a_image: &image::DynamicImage, _a_texture: &mut Box<dyn Texture>) {}
 
     fn use_program(&mut self, _a_program: &Box<dyn Program>) {}
 
@@ -364,16 +365,16 @@ impl RendererDirectX12 {
 
         if result_swap_chain.is_err() {
             match result_swap_chain {
-                DXGI_ERROR_INVALID_CALL => {
+                windows::Win32::Graphics::Dxgi::DXGI_ERROR_INVALID_CALL => {
                     print!("DXGI_ERROR_INVALID_CALL");
                 }
-                DXGI_STATUS_OCCLUDED => {
+                windows::Win32::Foundation::DXGI_STATUS_OCCLUDED => {
                     print!("DXGI_STATUS_OCCLUDED");
                 }
-                E_OUTOFMEMORY => {
+                windows::Win32::Foundation::E_OUTOFMEMORY => {
                     print!("E_OUTOFMEMORY");
                 }
-                DXGI_ERROR_NOT_CURRENTLY_AVAILABLE => {
+                windows::Win32::Graphics::Dxgi::DXGI_ERROR_NOT_CURRENTLY_AVAILABLE => {
                     print!("DXGI_ERROR_NOT_CURRENTLY_AVAILABLE");
                 }
                 _ => {}

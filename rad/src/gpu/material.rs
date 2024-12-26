@@ -1,4 +1,4 @@
-use crate::gpu::renderer::*;
+use crate::gpu::mesh::*;
 use crate::gpu::uniforms::*;
 
 use glam::*;

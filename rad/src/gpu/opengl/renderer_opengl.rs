@@ -11,6 +11,7 @@ use crate::gpu::camera::*;
 use crate::gpu::command_list::*;
 use crate::gpu::image::*;
 use crate::gpu::material::*;
+use crate::gpu::mesh::*;
 use crate::gpu::renderer::*;
 use crate::gpu::renderer_types::*;
 use crate::gpu::uniforms::*;

@@ -4,6 +4,7 @@ extern crate libc;
 
 use rad::gpu::camera::*;
 use rad::gpu::material;
+use rad::gpu::mesh;
 use rad::gpu::renderer;
 use rad::gpu::renderer_types;
 use rad::gui::window::*;
@@ -30,7 +31,7 @@ use glam::*;
 
 struct Renderer {
     camera: Camera,
-    mesh: Rc<RefCell<renderer::Mesh>>,
+    mesh: Rc<RefCell<mesh::Mesh>>,
     renderer: Box<dyn renderer::Renderer>,
     window: Arc<Window>,
 }
