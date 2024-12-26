@@ -1,4 +1,5 @@
 pub mod camera;
+pub mod command_list;
 pub mod material;
 pub mod renderer;
 pub mod uniforms;

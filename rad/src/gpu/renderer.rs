@@ -1,6 +1,7 @@
 
 extern crate glam;
 
+use crate::gpu::command_list::*;
 use crate::gpu::renderer_types::*;
 use crate::gpu::uniforms::*;
 use crate::gpu::material::*;
@@ -85,6 +86,10 @@ pub trait Renderer {
   /*
   fn load_program_compute(&mut self, a_shader: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>;
   */
+
+  fn gen_command_list(&mut self) -> Box<dyn CommandList>;
+
+  fn submit_command_list(&mut self, a_command_list: Box<dyn CommandList>);
 
   fn gen_buffer_vertex(&mut self, a_verts: &std::vec::Vec<f32>) -> Box<dyn Vertices>;
 

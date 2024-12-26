@@ -75,9 +75,7 @@ impl MaterialBasic{
 
     uniforms.push(uniform_mvp);
 
-    let mut material = MaterialBasic{program: a_program, uniforms: uniforms, samplers: samplers, mvp: Mat4::IDENTITY};
-
-    material
+    MaterialBasic{program: a_program, uniforms: uniforms, samplers: samplers, mvp: Mat4::IDENTITY}
   }
 
   pub fn set_color_texture(&self, _texture: &Box<dyn Texture>){

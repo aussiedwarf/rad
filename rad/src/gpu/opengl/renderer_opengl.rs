@@ -8,6 +8,8 @@ use std::rc::Rc;
 use std::sync::Arc;
 use glam::*;
 
+use super::command_list_opengl::*;
+use crate::gpu::command_list::*;
 use crate::gpu::renderer::*;
 use crate::gpu::renderer_types::*;
 use crate::gpu::material::*;
@@ -335,7 +337,7 @@ impl Renderer for RendererOpenGL {
     Ok(Box::new(ShaderOpenGL{id:id}))
   }
 
-  fn load_shader_intermediate(&mut self, a_shader_type: ShaderType, a_source: &std::vec::Vec::<u8>) -> Result<Box<dyn Shader>, RendererError>{
+  fn load_shader_intermediate(&mut self, _a_shader_type: ShaderType, _a_source: &std::vec::Vec::<u8>) -> Result<Box<dyn Shader>, RendererError>{
     return Err(RendererError::Unimplemented)
   }
 
@@ -436,6 +438,14 @@ impl Renderer for RendererOpenGL {
     }
   }
   */
+
+  fn gen_command_list(&mut self) -> Box<dyn CommandList> {
+    CommandListOpenGL::new()
+  }
+
+  fn submit_command_list(&mut self, _a_command_list: Box<dyn CommandList>) {
+
+  }
 
   fn gen_buffer_vertex(&mut self, a_verts: &std::vec::Vec<f32>) -> Box<dyn Vertices>{
     let mut vbo: gl::types::GLuint = 0;
@@ -591,7 +601,7 @@ impl Renderer for RendererOpenGL {
 
   fn draw_mesh(&mut self, _camera: &Camera, a_mesh: Rc<RefCell<Mesh>>){
     
-    let mut num_indices = 0;
+    let num_indices;
     {
       let mesh = a_mesh.borrow_mut();
       let geometry = match mesh.geometry.any().downcast_ref::<GeometryOpenGL>() {
@@ -702,11 +712,11 @@ impl RendererOpenGL {
   }
 
   pub fn update_uniform(&self, a_uniform: &mut Box<dyn Uniform>){
-    let mut uniform = match a_uniform.any().downcast_mut::<UniformOpenGL>() {
+    let uniform = match a_uniform.any().downcast_mut::<UniformOpenGL>() {
       Some(res) => res,
       None => panic!("Invalid uniform cast")
     };
-    
+
     if uniform.modified {
       match uniform.data.info.element_type {
         ElementType::Float32 => {

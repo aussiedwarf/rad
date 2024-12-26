@@ -1,9 +1,13 @@
 use ash::{vk, Entry};
 use glam::*;
 use std::cell::RefCell;
+use std::ffi::CString;
 use std::rc::Rc;
+use std::sync::Mutex;
+use std::sync::Arc;
 
 use crate::core::unsafe_send::UnsafeSend;
+use super::command_list_vulkan::*;
 use super::device::{PhysicalDevice, LogicalDevice};
 use super::command_pool::CommandPool;
 use super::fence::Fence;
@@ -12,6 +16,7 @@ use super::render_pass::RenderPass;
 use super::semaphore::Semaphore;
 use super::surface::Surface;
 use super::swapchain::Swapchain;
+use crate::gpu::command_list::*;
 use crate::gpu::renderer::*;
 use crate::gpu::renderer_types::*;
 use crate::gpu::material::*;
@@ -19,9 +24,7 @@ use crate::gpu::camera::*;
 use crate::gpu::uniforms::*;
 use crate::gpu::image::*;
 use crate::gpu::resource::*;
-use std::ffi::CString;
-use std::sync::Mutex;
-use std::sync::Arc;
+
 
 pub struct SamplerVulkan{
   name: String,
@@ -307,7 +310,7 @@ impl Renderer for RendererVulkan {
   fn end_frame(&mut self){
     
     let current_frame = self.current_frame as usize;
-    let mut recreate = false;
+    let recreate;
 
     if self.renderer_ready &&self.swapchain.extent.width > 0 && self.swapchain.extent.height > 0 {
       self.renderer_ready = false;
@@ -602,6 +605,14 @@ impl Renderer for RendererVulkan {
   //fn set_uniform(&mut self, a_uniform: &Box<dyn Uniform>){}
 
   //fn set_texture(&mut self, a_texture: &Box<dyn Texture>){}
+
+  fn gen_command_list(&mut self) -> Box<dyn CommandList> {
+    CommandListVulkan::new()
+  }
+
+  fn submit_command_list(&mut self, _a_command_list: Box<dyn CommandList>) {
+
+  }
 
   fn gen_buffer_vertex(&mut self, _verts: &std::vec::Vec<f32>) -> Box<dyn Vertices>{
     Box::new(VerticesVulkan{id: 0})

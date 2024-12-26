@@ -91,7 +91,7 @@ impl UniformData{
   }
 
   pub fn set<T: 'static>(&mut self, a: T){
-    let mut uniform = match self.data.any_mut().downcast_mut::<UniformDataGen<T>>() {
+    let uniform = match self.data.any_mut().downcast_mut::<UniformDataGen<T>>() {
       Some(res) => res,
       None => panic!("Invalid cast")
     };

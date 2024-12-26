@@ -9,11 +9,11 @@ use rad::gpu::renderer;
 use rad::gui::window::*;
 
 #[cfg(target_os = "emscripten")]
-use rad::gui::emscripten::{emscripten};
+use rad::gui::emscripten::emscripten;
 
 use rad::gui::main_loop::*;
 
-use rad::core::filesystem::{filesystem};
+use rad::core::filesystem::filesystem;
 
 //use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 
@@ -36,31 +36,31 @@ struct Renderer{
 }
 
 impl Renderer {
-  pub fn new(window: Arc<Window>) -> Result<Renderer, renderer_types::RendererError> {
+  pub fn new(a_window: Arc<Window>) -> Result<Renderer, renderer_types::RendererError> {
     let mut renderer = match Window::init_renderer(
-      window.renderer_type, 
+      a_window.renderer_type, 
       renderer_types::Version{major: renderer_types::VersionNum::Lowest, minor: renderer_types::VersionNum::Lowest, patch: renderer_types::VersionNum::Lowest},
       renderer_types::Version{major: renderer_types::VersionNum::Highest, minor: renderer_types::VersionNum::Highest, patch: renderer_types::VersionNum::Highest},
-      &(window.video_subsystem.lock().unwrap()).inner,
-      window.clone())
+      &(a_window.video_subsystem.lock().unwrap()).inner,
+      a_window.clone())
     {
       Ok(res) => res,
       Err(_res) => panic!("Error creating renderer")
     };
 
-    let shader_path = match window.renderer_type {
+    let shader_path = match a_window.renderer_type {
       renderer_types::RendererType::OpenGL => "shaders/gl/",
       renderer_types::RendererType::OpenGLES => "shaders/gles/",
       renderer_types::RendererType::Vulkan => "shaders/spirv/",
       _ => "shaders/gl/"
     };
 
-    let shader_extension = match window.renderer_type {
+    let shader_extension = match a_window.renderer_type {
       renderer_types::RendererType::Vulkan => ".spv",
       _ => ""
     };
 
-    let shader_vertex = match window.renderer_type {
+    let shader_vertex = match a_window.renderer_type {
       renderer_types::RendererType::Vulkan => {
         let source_vertex = match filesystem::read_file_immediate(&(shader_path.to_owned() + "basic.vert" + shader_extension)){
           Ok(res) => res,
@@ -89,7 +89,7 @@ impl Renderer {
       }
     };
     
-    let shader_frag = match window.renderer_type {
+    let shader_frag = match a_window.renderer_type {
       renderer_types::RendererType::Vulkan => {
         let mut source_frag = match filesystem::read_file_immediate(&(shader_path.to_owned() + "basic.frag" + shader_extension)){
           Ok(res) => res,
@@ -164,19 +164,19 @@ impl Renderer {
     let mesh = renderer.gen_mesh(geometry, material);
     
     renderer.set_clear_color(Vec4::new(0.1, 0.1, 0.0, 1.0));
-    renderer.set_viewport(IVec2::new(0,0), IVec2::new(window.width as i32, window.height as i32));
+    renderer.set_viewport(IVec2::new(0,0), IVec2::new(a_window.width as i32, a_window.height as i32));
 
     //self.renderer.use_program(&shader_program);
     //self.renderer.set_uniform(&uniform);
     //self.renderer.set_texture(&texture);
 
     let mut camera = Camera::new();
-    camera.set_viewport(Vec2::new(window.width as f32, window.height as f32), 
-      Vec2::ZERO, Vec2::new(window.width as f32, window.height as f32), Vec2::ZERO);
+    camera.set_viewport(Vec2::new(a_window.width as f32, a_window.height as f32), 
+      Vec2::ZERO, Vec2::new(a_window.width as f32, a_window.height as f32), Vec2::ZERO);
 
     return Ok(Renderer{
       renderer: renderer,
-      window: window,
+      window: a_window,
       camera: camera,
       mesh: mesh
     })
@@ -283,18 +283,16 @@ impl MainWindow {
       }
     };
 
-    // let mut i = 0;
-    // let mut r: f32 = 0.0;
-
     while running.load(Ordering::SeqCst){
-      renderer.run(/*&mut i, &mut r*/);
+      renderer.run();
       std::thread::sleep(Duration::new(0, 1));
     }
     println!{"Thread Render done"};
   }
 
+  #[allow(dead_code)]
   fn init_renderer(&mut self) {
-    let mut renderer = match Renderer::new(Arc::clone(&self.window)){
+    let renderer = match Renderer::new(Arc::clone(&self.window)){
       Ok(res) => res,
       Err(_res) => return
     };

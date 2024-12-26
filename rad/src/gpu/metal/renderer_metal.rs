@@ -17,6 +17,8 @@ use objc::sel;
 #[cfg(target_vendor = "apple")]
 use objc::sel_impl;
 
+use super::command_list_metal::*;
+use crate::gpu::command_list::*;
 use crate::gpu::renderer::*;
 use crate::gpu::renderer::Texture;
 use crate::gpu::renderer_types::*;
@@ -50,7 +52,7 @@ impl Program for ProgramMetal {
   }
 
   fn get_uniform(&self, a_name: &str, a_data: UniformData) -> Box<dyn Uniform>{
-    let c_str = match CString::new(a_name){
+    let _c_str = match CString::new(a_name){
       Ok(res) => res,
       Err(_res) => panic!("Invalid text cast")
     };
@@ -194,7 +196,7 @@ impl Renderer for RendererMetal {
   }
 
   //clear immediatly
-  fn clear(&mut self, a_clear: RendererClearType){
+  fn clear(&mut self, _a_clear: RendererClearType){
 
   }
 
@@ -235,34 +237,41 @@ impl Renderer for RendererMetal {
     self.viewport_size
   }
 
-  fn load_shader(&mut self, a_shader_type: ShaderType, a_source: &str) -> Result<Box<dyn Shader>, RendererError>{
+  fn load_shader(&mut self, _a_shader_type: ShaderType, _a_source: &str) -> Result<Box<dyn Shader>, RendererError>{
     
 
     Ok(Box::new(ShaderMetal{}))
   }
 
-  fn load_shader_intermediate(&mut self, a_shader_type: ShaderType, a_source: &std::vec::Vec::<u8>) -> Result<Box<dyn Shader>, RendererError>{
+  fn load_shader_intermediate(&mut self, _a_shader_type: ShaderType, _a_source: &std::vec::Vec::<u8>) -> Result<Box<dyn Shader>, RendererError>{
     return Err(RendererError::Unimplemented)
   }
 
-  fn load_program_vert_frag(&mut self, a_shader_vert: Box<dyn Shader>, a_shader_frag: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>{
+  fn load_program_vert_frag(&mut self, _a_shader_vert: Box<dyn Shader>, _a_shader_frag: Box<dyn Shader>) -> Result<Box<dyn Program>, RendererError>{
 
     Ok(Box::new(ProgramMetal{}))
   }
 
-  fn get_uniform(&mut self, a_shader: &mut Box<dyn Program>, a_name: &str) -> Box<dyn UniformShader>{
+  fn get_uniform(&mut self, _a_shader: &mut Box<dyn Program>, a_name: &str) -> Box<dyn UniformShader>{
     Box::new(UniformShaderMetal{
       name: UniformName::new(a_name)
     })
   }
 
+  fn gen_command_list(&mut self) -> Box<dyn CommandList> {
+    CommandListMetal::new()
+  }
 
-  fn gen_buffer_vertex(&mut self, a_verts: &std::vec::Vec<f32>) -> Box<dyn Vertices>{
+  fn submit_command_list(&mut self, _a_command_list: Box<dyn CommandList>) {
+
+  }
+
+  fn gen_buffer_vertex(&mut self, _a_verts: &std::vec::Vec<f32>) -> Box<dyn Vertices>{
 
     Box::new(VerticesMetal{})
   }
 
-  fn gen_geometry(&mut self, a_buffer: &Box<dyn Vertices>) -> Box<dyn Geometry>{
+  fn gen_geometry(&mut self, _a_buffer: &Box<dyn Vertices>) -> Box<dyn Geometry>{
     
     Box::new(GeometryMetal{})
   }
@@ -286,28 +295,26 @@ impl Renderer for RendererMetal {
     Box::new(sampler)
   }
 
-  fn load_texture(&mut self, a_image: &image::DynamicImage, a_texture: &mut Box<dyn Texture>){
+  fn load_texture(&mut self, _a_image: &image::DynamicImage, _a_texture: &mut Box<dyn Texture>){
   }
 
-  fn use_program(&mut self, a_program: &Box<dyn Program>){
+  fn use_program(&mut self, _a_program: &Box<dyn Program>){
   }
 
-  fn draw_geometry(&mut self, a_geometry: &Box<dyn Geometry>){
+  fn draw_geometry(&mut self, _a_geometry: &Box<dyn Geometry>){
     
   }
 
-  fn draw_mesh(&mut self, _camera: &Camera, a_mesh: Rc<RefCell<Mesh>>){
+  fn draw_mesh(&mut self, _camera: &Camera, _a_mesh: Rc<RefCell<Mesh>>){
     
   }
 
   fn read_render_buffer(&mut self) -> Image {
-    let mut image = Image{
+    Image{
       width: self.window.width, 
       height: self.window.height, 
       pitch: self.window.height * 4, 
-      pixels: vec![0u8; (self.window.width * self.window.height  * 4) as usize]};
-    
-    return image
+      pixels: vec![0u8; (self.window.width * self.window.height  * 4) as usize]}
   }
 
 }
@@ -316,8 +323,8 @@ impl Renderer for RendererMetal {
 impl RendererMetal {
   #[cfg(not(target_vendor = "apple"))]
   pub fn new(
-    a_video_subsystem: &sdl2::VideoSubsystem, 
-    a_window: Arc<Window>) -> Result<Self, RendererError>
+    _a_video_subsystem: &sdl2::VideoSubsystem, 
+    _a_window: Arc<Window>) -> Result<Self, RendererError>
   {
     Err(RendererError::UnsupportedAPI)
   }
@@ -480,10 +487,10 @@ impl RendererMetal {
   }
     
 
-  pub fn update_uniform(&self, a_uniform: &mut Box<dyn Uniform>){
+  pub fn update_uniform(&self, _a_uniform: &mut Box<dyn Uniform>){
   }
 
-  pub fn update_sampler(&self, a_sampler: &Box<dyn Sampler>){
+  pub fn update_sampler(&self, _a_sampler: &Box<dyn Sampler>){
   }
 }
 
