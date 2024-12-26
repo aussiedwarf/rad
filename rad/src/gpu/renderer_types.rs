@@ -1,4 +1,3 @@
-
 extern crate glam;
 
 use bitflags::bitflags;
@@ -9,159 +8,156 @@ use strum_macros::EnumIter;
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
 pub enum DeviceType {
-  Default,
-  HighPerformance,
-  LowPower
+    Default,
+    HighPerformance,
+    LowPower,
 }
 
 #[allow(dead_code)]
 #[derive(Copy, Clone, PartialEq)]
 pub enum VersionNum {
-  Highest,
-  Lowest,
-  Value(i32)
+    Highest,
+    Lowest,
+    Value(i32),
 }
 
 #[derive(Copy, Clone, PartialEq)]
 pub struct Version {
-  pub major: VersionNum,
-  pub minor: VersionNum,
-  pub patch: VersionNum
+    pub major: VersionNum,
+    pub minor: VersionNum,
+    pub patch: VersionNum,
 }
 
 #[allow(dead_code)]
 #[derive(Copy, Clone, PartialEq, EnumIter)]
 pub enum RendererType {
-  OpenGL,
-  OpenGLES,
-  DirectX,
-  Vulkan,
-  Metal,
-  WebGpu
+    OpenGL,
+    OpenGLES,
+    DirectX,
+    Vulkan,
+    Metal,
+    WebGpu,
 }
 
 #[allow(dead_code)]
 #[derive(Copy, Clone)]
-pub enum ShaderType{
-  Vertex,
-  TesselationControl,
-  TesselationEvaluation,
-  Geometry,
-  Fragment,
-  Compute
+pub enum ShaderType {
+    Vertex,
+    TesselationControl,
+    TesselationEvaluation,
+    Geometry,
+    Fragment,
+    Compute,
 }
 
 #[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum RendererError {
-  Error,
-  ShaderCompile,
-  InvalidCast,
-  InvalidVersion,
-  UnsupportedAPI,
-  Unimplemented
+    Error,
+    ShaderCompile,
+    InvalidCast,
+    InvalidVersion,
+    UnsupportedAPI,
+    Unimplemented,
 }
-
 
 #[allow(dead_code)]
 #[derive(Copy, Clone, PartialEq)]
 #[repr(u8)]
 pub enum ElementType {
-  Float16,
-  Float32,
-  Float64,
-  Int8,
-  Int16,
-  Int32,
-  Int64,
-  Uint8,
-  Uint16,
-  Uint32,
-  Uint64
+    Float16,
+    Float32,
+    Float64,
+    Int8,
+    Int16,
+    Int32,
+    Int64,
+    Uint8,
+    Uint16,
+    Uint32,
+    Uint64,
 }
-
 
 #[allow(dead_code)]
 #[derive(Copy, Clone, PartialEq)]
 #[repr(u8)]
 pub enum ContainerType {
-  Single,
-  Vec2,
-  Vec3,
-  Vec4,
-  Mat2x2,
-  Mat3x3,
-  Mat4x4
+    Single,
+    Vec2,
+    Vec3,
+    Vec4,
+    Mat2x2,
+    Mat3x3,
+    Mat4x4,
 }
 
-pub trait GetType{
-  fn get_element_type(&self) -> ElementType;
-  fn get_container_type(&self) -> ContainerType;
+pub trait GetType {
+    fn get_element_type(&self) -> ElementType;
+    fn get_container_type(&self) -> ContainerType;
 }
 
-impl GetType for f32{
-  fn get_element_type(&self) -> ElementType{
-    ElementType::Float32
-  }
-  fn get_container_type(&self) -> ContainerType{
-    ContainerType::Single
-  }
+impl GetType for f32 {
+    fn get_element_type(&self) -> ElementType {
+        ElementType::Float32
+    }
+    fn get_container_type(&self) -> ContainerType {
+        ContainerType::Single
+    }
 }
 
-impl GetType for Vec2{
-  fn get_element_type(&self) -> ElementType{
-    ElementType::Float32
-  }
-  fn get_container_type(&self) -> ContainerType{
-    ContainerType::Vec2
-  }
+impl GetType for Vec2 {
+    fn get_element_type(&self) -> ElementType {
+        ElementType::Float32
+    }
+    fn get_container_type(&self) -> ContainerType {
+        ContainerType::Vec2
+    }
 }
 
-impl GetType for Vec3{
-  fn get_element_type(&self) -> ElementType{
-    ElementType::Float32
-  }
-  fn get_container_type(&self) -> ContainerType{
-    ContainerType::Vec3
-  }
+impl GetType for Vec3 {
+    fn get_element_type(&self) -> ElementType {
+        ElementType::Float32
+    }
+    fn get_container_type(&self) -> ContainerType {
+        ContainerType::Vec3
+    }
 }
 
-impl GetType for Vec4{
-  fn get_element_type(&self) -> ElementType{
-    ElementType::Float32
-  }
-  fn get_container_type(&self) -> ContainerType{
-    ContainerType::Vec4
-  }
+impl GetType for Vec4 {
+    fn get_element_type(&self) -> ElementType {
+        ElementType::Float32
+    }
+    fn get_container_type(&self) -> ContainerType {
+        ContainerType::Vec4
+    }
 }
 
-impl GetType for Mat2{
-  fn get_element_type(&self) -> ElementType{
-    ElementType::Float32
-  }
-  fn get_container_type(&self) -> ContainerType{
-    ContainerType::Mat2x2
-  }
+impl GetType for Mat2 {
+    fn get_element_type(&self) -> ElementType {
+        ElementType::Float32
+    }
+    fn get_container_type(&self) -> ContainerType {
+        ContainerType::Mat2x2
+    }
 }
 
-impl GetType for Mat3{
-  fn get_element_type(&self) -> ElementType{
-    ElementType::Float32
-  }
-  fn get_container_type(&self) -> ContainerType{
-    ContainerType::Mat3x3
-  }
+impl GetType for Mat3 {
+    fn get_element_type(&self) -> ElementType {
+        ElementType::Float32
+    }
+    fn get_container_type(&self) -> ContainerType {
+        ContainerType::Mat3x3
+    }
 }
 
-impl GetType for Mat4{
-  fn get_element_type(&self) -> ElementType{
-    ElementType::Float32
-  }
-  fn get_container_type(&self) -> ContainerType{
-    ContainerType::Mat4x4
-  }
+impl GetType for Mat4 {
+    fn get_element_type(&self) -> ElementType {
+        ElementType::Float32
+    }
+    fn get_container_type(&self) -> ContainerType {
+        ContainerType::Mat4x4
+    }
 }
-
 
 /*
 #[derive(Copy, Clone)]
@@ -186,27 +182,27 @@ bitflags! {
 impl std::error::Error for RendererError {}
 
 impl fmt::Display for RendererError {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    match self {
-      RendererError::Error => write!(f, "Error"),
-      RendererError::InvalidCast => write!(f, "Error InvalidCast"),
-      RendererError::InvalidVersion => write!(f, "Error InvalidVersion"),
-      RendererError::ShaderCompile => write!(f, "Error ShaderCompile"),
-      RendererError::UnsupportedAPI => write!(f, "Error UnsupportedAPI"),
-      RendererError::Unimplemented => write!(f, "Error Unimplemented"),
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            RendererError::Error => write!(f, "Error"),
+            RendererError::InvalidCast => write!(f, "Error InvalidCast"),
+            RendererError::InvalidVersion => write!(f, "Error InvalidVersion"),
+            RendererError::ShaderCompile => write!(f, "Error ShaderCompile"),
+            RendererError::UnsupportedAPI => write!(f, "Error UnsupportedAPI"),
+            RendererError::Unimplemented => write!(f, "Error Unimplemented"),
+        }
     }
-  }
 }
 
 impl fmt::Display for RendererType {
-  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-    match self {
-      RendererType::OpenGL => write!(f, "OpenGL"),
-      RendererType::OpenGLES => write!(f, "OpenGLES"),
-      RendererType::DirectX => write!(f, "DirectX"),
-      RendererType::Vulkan => write!(f, "Vulkan"),
-      RendererType::Metal => write!(f, "Metal"),
-      RendererType::WebGpu => write!(f, "WebGpu"),
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            RendererType::OpenGL => write!(f, "OpenGL"),
+            RendererType::OpenGLES => write!(f, "OpenGLES"),
+            RendererType::DirectX => write!(f, "DirectX"),
+            RendererType::Vulkan => write!(f, "Vulkan"),
+            RendererType::Metal => write!(f, "Metal"),
+            RendererType::WebGpu => write!(f, "WebGpu"),
+        }
     }
-  }
 }
