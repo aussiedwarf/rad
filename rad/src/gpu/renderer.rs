@@ -95,7 +95,7 @@ pub trait Renderer {
     fn use_program(&mut self, a_program: &Box<dyn Program>);
 
     fn draw_geometry(&mut self, a_geometry: &Box<dyn Geometry>);
-    fn draw_mesh(&mut self, a_camera: &Camera, a_mesh: Rc<RefCell<Mesh>>);
+    fn draw_mesh(&mut self, a_camera: &Camera, a_mesh: Rc<RefCell<Mesh>>, a_command_list: &mut Box<dyn CommandList>);
 
     fn read_render_buffer(&mut self) -> Image;
 

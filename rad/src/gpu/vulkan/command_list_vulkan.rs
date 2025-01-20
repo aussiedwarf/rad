@@ -1,20 +1,47 @@
-use crate::gpu::camera::*;
+use ash::vk;
+
 use crate::gpu::command_list::*;
-use crate::gpu::mesh::*;
 use crate::gpu::resource::*;
 
-use super::shader::*;
+use super::device::*;
+use super::fence::Fence;
+use super::semaphore::Semaphore;
 
 use std::cell::RefCell;
 use std::rc::Rc;
 
 pub struct CommandListVulkan {
-    resources: std::vec::Vec<Rc<RefCell<dyn Resource>>>
+    pub resources: std::vec::Vec<Rc<RefCell<dyn Resource>>>,
+    pub command_buffer: ash::vk::CommandBuffer,
+    pub fence: Rc<Fence>,
+    pub semaphore: Rc<Semaphore>,
+    pub is_active: bool,
+    pub is_submitted: bool,
 }
 
-impl CommandListVulkan{
-    pub fn new() -> Box<CommandListVulkan>{
-        Box::new(Self{resources: std::vec::Vec::<Rc<RefCell<dyn Resource>>>::new()})
+impl CommandListVulkan {
+    pub fn new(
+        a_command_buffer: ash::vk::CommandBuffer,
+        a_logical_device: Rc<LogicalDevice>,
+    ) -> Box<CommandListVulkan> {
+        let fence = Rc::new(match Fence::new(a_logical_device.clone()) {
+            Ok(res) => res,
+            Err(_res) => panic!("Unable to create vulkan fence"),
+        });
+
+        let semaphore = Rc::new(match Semaphore::new(a_logical_device.clone()){
+            Ok(res) => res,
+            Err(_res) => panic!("Unable to create vulkan semaphore"),
+        });
+
+        Box::new(Self {
+            resources: std::vec::Vec::<Rc<RefCell<dyn Resource>>>::new(),
+            command_buffer: a_command_buffer,
+            fence: fence,
+            semaphore: semaphore,
+            is_active: false,
+            is_submitted: false,
+        })
     }
 }
 
@@ -23,38 +50,11 @@ impl CommandList for CommandListVulkan {
         self
     }
 
-    fn draw_mesh(&mut self, _camera: &Camera, a_mesh: Rc<RefCell<Mesh>>) {
-        /*
-        if !self.renderer_ready {
-            return;
-        }
-        // let geometry = match a_mesh.geometry.any().downcast_ref::<GeometryVulkan>() {
-        //   Some(res) => res,
-        //   None => return
-        // };
-        let mesh = a_mesh.borrow();
-        let program_rc = mesh.material.get_program();
-        let program = match program_rc.any().downcast_ref::<ProgramVulkan>() {
-            Some(res) => res,
-            None => return,
-        };
+    fn any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
 
-        let current_frame = self.current_frame as usize;
-
-        unsafe {
-            // TODO Only set pipeline if not already set
-            self.logical_device.device.cmd_bind_pipeline(
-                self.command_buffers[current_frame],
-                ash::vk::PipelineBindPoint::GRAPHICS,
-                program.pipeline,
-            );
-
-            self.logical_device
-                .device
-                .cmd_draw(self.command_buffers[current_frame], 3, 1, 0, 0);
-        }
-
-        self.resources[current_frame].push(a_mesh.clone());
-        */
+    fn into_any(self: Box<Self>) -> Box<dyn std::any::Any> {
+        self
     }
 }

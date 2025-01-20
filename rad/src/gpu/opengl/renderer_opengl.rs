@@ -641,7 +641,7 @@ impl Renderer for RendererOpenGL {
         }
     }
 
-    fn draw_mesh(&mut self, _camera: &Camera, a_mesh: Rc<RefCell<Mesh>>) {
+    fn draw_mesh(&mut self, _camera: &Camera, a_mesh: Rc<RefCell<Mesh>>, _a_command_list: &mut Box<dyn CommandList>) {
         let num_indices;
         {
             let mesh = a_mesh.borrow_mut();

@@ -118,6 +118,7 @@ impl UniformData {
 }
 
 pub trait UniformShader {
+    // TODO should have separate any and any_mut
     fn any(&mut self) -> &mut dyn std::any::Any;
 }
 
@@ -137,6 +138,7 @@ impl UniformMaterial {
 }
 
 impl Uniform for UniformMaterial {
+    // TODO should have separate any and any_mut
     fn any(&mut self) -> &mut dyn std::any::Any {
         self
     }
@@ -159,6 +161,7 @@ impl Uniform for UniformMaterial {
 }
 
 pub trait Uniform {
+    // TODO should have separate any and any_mut
     fn any(&mut self) -> &mut dyn std::any::Any;
 
     fn set_f32(&mut self, a: f32);

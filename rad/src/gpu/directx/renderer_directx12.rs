@@ -261,7 +261,7 @@ impl Renderer for RendererDirectX12 {
 
     fn draw_geometry(&mut self, _a_geometry: &Box<dyn Geometry>) {}
 
-    fn draw_mesh(&mut self, _a_camera: &Camera, _a_mesh: Rc<RefCell<Mesh>>) {}
+    fn draw_mesh(&mut self, _a_camera: &Camera, _a_mesh: Rc<RefCell<Mesh>>, _a_command_list: &mut Box<dyn CommandList>) {}
 
     fn read_render_buffer(&mut self) -> Image {
         return Image {

@@ -1,9 +1,12 @@
+use super::command_list_vulkan::CommandListVulkan;
 use super::device::LogicalDevice;
 use crate::gpu::renderer_types::RendererError;
 
 pub struct CommandPool {
+    // TODO: have a vector of command pools to allow for any number of command buffers
     pub pool: ash::vk::CommandPool,
     pub logical_device: std::rc::Rc<LogicalDevice>,
+    pub command_buffers: std::vec::Vec::<Option<Box<CommandListVulkan>>>,
 }
 
 impl CommandPool {
@@ -24,9 +27,13 @@ impl CommandPool {
                 Err(_res) => return Err(RendererError::Error),
             }
         };
+
+        let command_buffers = std::vec::Vec::<Option<Box<CommandListVulkan>>>::new();
+
         Ok(Self {
             pool: pool,
             logical_device: a_logical_device,
+            command_buffers: command_buffers,
         })
     }
 
@@ -52,6 +59,32 @@ impl CommandPool {
         };
 
         Ok(command_buffers)
+    }
+
+    pub fn get_command_list(&mut self) -> Option<Box<CommandListVulkan>> {
+        for command_buffer in &mut self.command_buffers.iter_mut() {
+            match command_buffer {
+                Some(cmd_buf) => {
+                    if !cmd_buf.is_submitted {
+                        return command_buffer.take();
+                    }
+                }
+                None => continue,
+            }
+        }
+        None
+    }
+
+    pub fn release_command_list(&mut self, a_command_list: Box<CommandListVulkan>) {
+        for command_buffer in &mut self.command_buffers.iter_mut() {
+            match command_buffer {
+                Some(_) => continue,
+                None => {
+                    *command_buffer = Some(a_command_list);
+                    return
+                }
+            }
+        }
     }
 }
 

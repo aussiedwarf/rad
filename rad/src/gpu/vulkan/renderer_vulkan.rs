@@ -27,7 +27,6 @@ use crate::gpu::renderer_types::*;
 use crate::gpu::resource::*;
 use crate::gpu::uniforms::*;
 
-
 pub struct RendererVulkan {
     pub version_major: i32,
     pub version_minor: i32,
@@ -50,9 +49,8 @@ pub struct RendererVulkan {
 
     // Order matters here so that instance is destroyed last
     framebuffer_format: ash::vk::SurfaceFormatKHR,
-    image_available_semaphores: std::vec::Vec<Semaphore>,
-    render_finished_semaphores: std::vec::Vec<Semaphore>,
-    render_fences: std::vec::Vec<Fence>,
+    image_available_semaphores: std::vec::Vec<Rc<Semaphore>>,
+    render_fences: std::vec::Vec<Option<Rc<Fence>>>,
     command_buffers: std::vec::Vec<ash::vk::CommandBuffer>,
     #[allow(dead_code)] // Holds the command buffers which are destroyed if the pool is destroyed
     command_pool: CommandPool,
@@ -62,6 +60,8 @@ pub struct RendererVulkan {
     physical_device: PhysicalDevice,
     surface: Surface,
     instance: Instance,
+
+    last_semaphore: Option<Rc<Semaphore>>,
 }
 
 #[allow(dead_code)]
@@ -78,10 +78,10 @@ impl Renderer for RendererVulkan {
         self.renderer_ready = false;
         let current_frame = self.current_frame as usize;
 
-        let fences = [self.render_fences[current_frame].fence];
-
         // Wait for frame in flight to finish before using. Also prevents acquire_next_image from using signalled semaphore
         if self.frames_in_flight[current_frame] {
+            let fences = [self.render_fences[current_frame].as_ref().unwrap().fence];
+
             unsafe {
                 self.logical_device
                     .device
@@ -144,6 +144,8 @@ impl Renderer for RendererVulkan {
         }
 
         if self.swapchain.extent.width > 0 && self.swapchain.extent.height > 0 {
+            self.last_semaphore = Some(self.image_available_semaphores[current_frame].clone());
+            
             match unsafe {
                 self.logical_device.device.reset_command_buffer(
                     self.command_buffers[current_frame],
@@ -235,61 +237,62 @@ impl Renderer for RendererVulkan {
         {
             self.renderer_ready = false;
 
-            unsafe {
-                self.logical_device
-                    .device
-                    .cmd_end_render_pass(self.command_buffers[current_frame])
-            };
+            // unsafe {
+            //     self.logical_device
+            //         .device
+            //         .cmd_end_render_pass(self.command_buffers[current_frame])
+            // };
 
-            // TODO handle result
-            match unsafe {
-                self.logical_device
-                    .device
-                    .end_command_buffer(self.command_buffers[current_frame])
-            } {
-                Ok(_) => {}
-                Err(res) => {
-                    println!("Error: end_command_buffer {}", res)
-                }
-            };
+            // // TODO handle result
+            // match unsafe {
+            //     self.logical_device
+            //         .device
+            //         .end_command_buffer(self.command_buffers[current_frame])
+            // } {
+            //     Ok(_) => {}
+            //     Err(res) => {
+            //         println!("Error: end_command_buffer {}", res)
+            //     }
+            // };
 
-            let wait_semaphores = [self.image_available_semaphores[current_frame].semaphore];
-            let wait_stages = [ash::vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
-            let signal_semaphores = [self.render_finished_semaphores[current_frame].semaphore];
+            // let wait_semaphores = [self.image_available_semaphores[current_frame].semaphore];
+            // let wait_stages = [ash::vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
 
-            if self.frames_in_flight[current_frame] {
-                println!("Error: frames_in_flight {}", current_frame);
-            }
-            let submit_info = ash::vk::SubmitInfo::builder()
-                .wait_semaphores(&wait_semaphores)
-                .wait_dst_stage_mask(&wait_stages)
-                .signal_semaphores(&signal_semaphores)
-                .command_buffers(&[self.command_buffers[current_frame]])
-                .build();
+            // if self.frames_in_flight[current_frame] {
+            //     println!("Error: frames_in_flight {}", current_frame);
+            // }
+            // let submit_info = ash::vk::SubmitInfo::builder()
+            //     .wait_semaphores(&wait_semaphores)
+            //     .wait_dst_stage_mask(&wait_stages)
+            //     .signal_semaphores(&signal_semaphores)
+            //     .command_buffers(&[self.command_buffers[current_frame]])
+            //     .build();
 
-            let submits = [submit_info];
+            // let submits = [submit_info];
 
-            // TODO handle result
-            match unsafe {
-                self.logical_device.device.queue_submit(
-                    self.logical_device.queue,
-                    &submits,
-                    self.render_fences[current_frame].fence,
-                )
-            } {
-                Ok(_) => {}
-                Err(res) => {
-                    println!("Error: queue_submit {}", res)
-                }
-            };
+            // // TODO handle result
+            // match unsafe {
+            //     self.logical_device.device.queue_submit(
+            //         self.logical_device.queue,
+            //         &submits,
+            //         self.render_fences[current_frame].fence,
+            //     )
+            // } {
+            //     Ok(_) => {}
+            //     Err(res) => {
+            //         println!("Error: queue_submit {}", res)
+            //     }
+            // };
 
             self.frames_in_flight[current_frame] = true;
 
             let swapchains = [self.swapchain.swapchain.swapchain];
             let image_indices = [self.image_index];
 
+            let semaphore: Rc<Semaphore> = self.last_semaphore.as_ref().expect("No semaphore found").clone();
+
             let present_info = ash::vk::PresentInfoKHR::builder()
-                .wait_semaphores(&signal_semaphores)
+                .wait_semaphores(&[semaphore.semaphore])
                 .swapchains(&swapchains)
                 .image_indices(&image_indices)
                 .build();
@@ -594,16 +597,69 @@ impl Renderer for RendererVulkan {
     //fn set_texture(&mut self, a_texture: &Box<dyn Texture>){}
 
     fn gen_command_list(&mut self) -> Box<dyn CommandList> {
-        CommandListVulkan::new()
+        match self.command_pool.get_command_list() {
+            Some(cmd_lst) => return cmd_lst,
+            None => panic!("Unable to get vulkan command list"),
+        };
     }
 
     fn submit_command_list(&mut self, a_command_list: Box<dyn CommandList>) {
-        let command_list = match a_command_list.any().downcast_ref::<CommandListVulkan>() {
-            Some(res) => res,
-            None => panic!("Invalid command list cast to vulkan")
-        };
+        let mut command_list = a_command_list
+            .into_any()
+            .downcast::<CommandListVulkan>()
+            .unwrap_or_else(|_| panic!("Invalid cast from command list to vulkan"));
+
+            unsafe {
+                self.logical_device
+                    .device
+                    .cmd_end_render_pass(command_list.command_buffer)
+            };
+
+            // TODO handle result
+            match unsafe {
+                self.logical_device
+                    .device
+                    .end_command_buffer(command_list.command_buffer)
+            } {
+                Ok(_) => {}
+                Err(res) => {
+                    println!("Error: end_command_buffer {}", res)
+                }
+            };
+
+            let wait_semaphores = [self.last_semaphore.as_ref().unwrap().semaphore];
+            let wait_stages = [ash::vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
+            let signal_semaphores = [command_list.semaphore.semaphore];
+
+            self.last_semaphore = Some(command_list.semaphore.clone());
 
 
+            let submit_info = ash::vk::SubmitInfo::builder()
+                .wait_semaphores(&wait_semaphores)
+                .wait_dst_stage_mask(&wait_stages)
+                .signal_semaphores(&signal_semaphores)
+                .command_buffers(&[command_list.command_buffer])
+                .build();
+
+            let submits = [submit_info];
+
+            // TODO handle result
+            match unsafe {
+                self.logical_device.device.queue_submit(
+                    self.logical_device.queue,
+                    &submits,
+                    command_list.fence.fence,
+                )
+            } {
+                Ok(_) => {}
+                Err(res) => {
+                    println!("Error: queue_submit {}", res)
+                }
+            };
+
+        command_list.is_submitted = true;
+
+        self.command_pool.release_command_list(command_list);
     }
 
     fn gen_buffer_vertex(&mut self, _verts: &std::vec::Vec<f32>) -> Box<dyn Vertices> {
@@ -640,10 +696,21 @@ impl Renderer for RendererVulkan {
     fn use_program(&mut self, _program: &Box<dyn Program>) {}
 
     fn draw_geometry(&mut self, _geometry: &Box<dyn Geometry>) {}
-    fn draw_mesh(&mut self, _camera: &Camera, a_mesh: Rc<RefCell<Mesh>>) {
+    fn draw_mesh(
+        &mut self,
+        _camera: &Camera,
+        a_mesh: Rc<RefCell<Mesh>>,
+        a_command_list: &mut Box<dyn CommandList>,
+    ) {
         if !self.renderer_ready {
             return;
         }
+
+        let command_list = match a_command_list.any_mut().downcast_mut::<CommandListVulkan>() {
+            Some(res) => res,
+            None => panic!("Invalid cast of CommandList to CommandListVulkan"),
+        };
+
         // let geometry = match a_mesh.geometry.any().downcast_ref::<GeometryVulkan>() {
         //   Some(res) => res,
         //   None => return
@@ -652,25 +719,23 @@ impl Renderer for RendererVulkan {
         let program_rc = mesh.material.get_program();
         let program = match program_rc.any().downcast_ref::<ProgramVulkan>() {
             Some(res) => res,
-            None => return,
+            None => panic!("Invalid cast of Program to ProgramVulkan"),
         };
-
-        let current_frame = self.current_frame as usize;
 
         unsafe {
             // TODO Only set pipeline if not already set
             self.logical_device.device.cmd_bind_pipeline(
-                self.command_buffers[current_frame],
+                command_list.command_buffer,
                 ash::vk::PipelineBindPoint::GRAPHICS,
                 program.pipeline,
             );
 
             self.logical_device
                 .device
-                .cmd_draw(self.command_buffers[current_frame], 3, 1, 0, 0);
+                .cmd_draw(command_list.command_buffer, 3, 1, 0, 0);
         }
 
-        self.resources[current_frame].push(a_mesh.clone());
+        command_list.resources.push(a_mesh.clone());
     }
 
     fn read_render_buffer(&mut self) -> Image {
@@ -779,26 +844,18 @@ impl RendererVulkan {
             Err(_res) => return Err(RendererError::Error),
         };
 
-        let mut image_available_semaphores = std::vec::Vec::<Semaphore>::new();
-        let mut render_finished_semaphores = std::vec::Vec::<Semaphore>::new();
-        let mut render_fences = std::vec::Vec::<Fence>::new();
+        let mut image_available_semaphores = std::vec::Vec::<Rc<Semaphore>>::new();
+        let mut render_fences = std::vec::Vec::<Option<Rc<Fence>>>::new();
 
         let mut frames_in_flight = std::vec::Vec::<bool>::new();
         let mut resources = std::vec::Vec::<std::vec::Vec<Rc<RefCell<dyn Resource>>>>::new();
 
         for _ in 0..Self::MAX_FRAMES {
-            image_available_semaphores.push(match Semaphore::new(logical_device.clone()) {
+            image_available_semaphores.push(Rc::new(match Semaphore::new(logical_device.clone()) {
                 Ok(res) => res,
                 Err(_res) => return Err(RendererError::Error),
-            });
-            render_finished_semaphores.push(match Semaphore::new(logical_device.clone()) {
-                Ok(res) => res,
-                Err(_res) => return Err(RendererError::Error),
-            });
-            render_fences.push(match Fence::new(logical_device.clone()) {
-                Ok(res) => res,
-                Err(_res) => return Err(RendererError::Error),
-            });
+            }));
+            render_fences.push(None);
 
             frames_in_flight.push(false);
             resources.push(std::vec::Vec::<Rc<RefCell<dyn Resource>>>::new());
@@ -819,7 +876,6 @@ impl RendererVulkan {
             resources: resources,
             framebuffer_format: format,
             image_available_semaphores: image_available_semaphores,
-            render_finished_semaphores: render_finished_semaphores,
             render_fences: render_fences,
             command_buffers: command_buffers,
             command_pool: command_pool,
@@ -829,6 +885,7 @@ impl RendererVulkan {
             physical_device: physical_device,
             surface: surface,
             instance: instance,
+            last_semaphore: None
         })
     }
 
