@@ -28,3 +28,5 @@ To compile generally
 cargo build
 cargo build --release
 ```
+
+python -m http.server 

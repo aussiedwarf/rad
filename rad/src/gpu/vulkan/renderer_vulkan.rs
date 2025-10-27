@@ -51,8 +51,6 @@ pub struct RendererVulkan {
     framebuffer_format: ash::vk::SurfaceFormatKHR,
     image_available_semaphores: std::vec::Vec<Rc<Semaphore>>,
     render_fences: std::vec::Vec<Option<Rc<Fence>>>,
-    command_buffers: std::vec::Vec<ash::vk::CommandBuffer>,
-    #[allow(dead_code)] // Holds the command buffers which are destroyed if the pool is destroyed
     command_pool: CommandPool,
     swapchain: Swapchain,
     render_pass: RenderPass,
@@ -80,19 +78,19 @@ impl Renderer for RendererVulkan {
 
         // Wait for frame in flight to finish before using. Also prevents acquire_next_image from using signalled semaphore
         if self.frames_in_flight[current_frame] {
-            let fences = [self.render_fences[current_frame].as_ref().unwrap().fence];
+            // let fences = [self.render_fences[current_frame].as_ref().unwrap().fence];
 
-            unsafe {
-                self.logical_device
-                    .device
-                    .wait_for_fences(&fences, true, u64::MAX)
-                    .expect("Failed to wait for fences");
+            // unsafe {
+            //     self.logical_device
+            //         .device
+            //         .wait_for_fences(&fences, true, u64::MAX)
+            //         .expect("Failed to wait for fences");
 
-                self.logical_device
-                    .device
-                    .reset_fences(&fences)
-                    .expect("Failed to reset fences");
-            }
+            //     self.logical_device
+            //         .device
+            //         .reset_fences(&fences)
+            //         .expect("Failed to reset fences");
+            // }
             self.resources[current_frame].clear();
 
             self.frames_in_flight[current_frame] = false;
@@ -130,7 +128,7 @@ impl Renderer for RendererVulkan {
                         (0, false)
                     }
                     Err(res) => {
-                        println!("Error: reset_command_buffer: {}", res);
+                        println!("Error: acquire_next_image: {}", res);
                         return;
                     }
                 }
@@ -146,82 +144,82 @@ impl Renderer for RendererVulkan {
         if self.swapchain.extent.width > 0 && self.swapchain.extent.height > 0 {
             self.last_semaphore = Some(self.image_available_semaphores[current_frame].clone());
             
-            match unsafe {
-                self.logical_device.device.reset_command_buffer(
-                    self.command_buffers[current_frame],
-                    ash::vk::CommandBufferResetFlags::empty(),
-                )
-            } {
-                Ok(_) => {}
-                Err(res) => {
-                    println!("Error: reset_command_buffer {}", res)
-                }
-            };
+            // match unsafe {
+            //     self.logical_device.device.reset_command_buffer(
+            //         self.command_buffers[current_frame],
+            //         ash::vk::CommandBufferResetFlags::empty(),
+            //     )
+            // } {
+            //     Ok(_) => {}
+            //     Err(res) => {
+            //         println!("Error: reset_command_buffer {}", res)
+            //     }
+            // };
 
-            let begin_info = ash::vk::CommandBufferBeginInfo::builder().build();
+            // let begin_info = ash::vk::CommandBufferBeginInfo::builder().build();
 
-            match unsafe {
-                self.logical_device
-                    .device
-                    .begin_command_buffer(self.command_buffers[current_frame], &begin_info)
-            } {
-                Ok(_) => {}
-                Err(res) => {
-                    println!("Error: begin_command_buffer {}", res)
-                }
-            };
+            // match unsafe {
+            //     self.logical_device
+            //         .device
+            //         .begin_command_buffer(self.command_buffers[current_frame], &begin_info)
+            // } {
+            //     Ok(_) => {}
+            //     Err(res) => {
+            //         println!("Error: begin_command_buffer {}", res)
+            //     }
+            // };
 
-            let clear_values = [ash::vk::ClearValue {
-                color: ash::vk::ClearColorValue {
-                    float32: self.clear_color.to_array(),
-                },
-            }];
-            let render_pass_info = ash::vk::RenderPassBeginInfo::builder()
-                .render_pass(self.render_pass.render_pass)
-                .framebuffer(self.swapchain.framebuffers[self.image_index as usize].framebuffer)
-                .render_area(ash::vk::Rect2D {
-                    offset: ash::vk::Offset2D { x: 0, y: 0 },
-                    extent: self.swapchain.extent,
-                })
-                .clear_values(&clear_values)
-                .build();
+            // let clear_values = [ash::vk::ClearValue {
+            //     color: ash::vk::ClearColorValue {
+            //         float32: self.clear_color.to_array(),
+            //     },
+            // }];
+            // let render_pass_info = ash::vk::RenderPassBeginInfo::builder()
+            //     .render_pass(self.render_pass.render_pass)
+            //     .framebuffer(self.swapchain.framebuffers[self.image_index as usize].framebuffer)
+            //     .render_area(ash::vk::Rect2D {
+            //         offset: ash::vk::Offset2D { x: 0, y: 0 },
+            //         extent: self.swapchain.extent,
+            //     })
+            //     .clear_values(&clear_values)
+            //     .build();
 
-            unsafe {
-                self.logical_device.device.cmd_begin_render_pass(
-                    self.command_buffers[current_frame],
-                    &render_pass_info,
-                    ash::vk::SubpassContents::INLINE,
-                )
-            };
+            // unsafe {
+            //     self.logical_device.device.cmd_begin_render_pass(
+            //         self.command_buffers[current_frame],
+            //         &render_pass_info,
+            //         ash::vk::SubpassContents::INLINE,
+            //     )
+            // };
 
-            let viewports = [ash::vk::Viewport::builder()
-                .x(0.0)
-                .y(0.0)
-                .width(self.swapchain.extent.width as f32)
-                .height(self.swapchain.extent.height as f32)
-                .min_depth(0.0)
-                .max_depth(0.0)
-                .build()];
+            // let viewports = [ash::vk::Viewport::builder()
+            //     .x(0.0)
+            //     .y(0.0)
+            //     .width(self.swapchain.extent.width as f32)
+            //     .height(self.swapchain.extent.height as f32)
+            //     .min_depth(0.0)
+            //     .max_depth(0.0)
+            //     .build()];
 
-            unsafe {
-                self.logical_device.device.cmd_set_viewport(
-                    self.command_buffers[current_frame],
-                    0,
-                    &viewports,
-                )
-            };
+            // unsafe {
+            //     self.logical_device.device.cmd_set_viewport(
+            //         self.command_buffers[current_frame],
+            //         0,
+            //         &viewports,
+            //     )
+            // };
 
-            let scissors = [ash::vk::Rect2D {
-                offset: ash::vk::Offset2D { x: 0, y: 0 },
-                extent: self.swapchain.extent,
-            }];
-            unsafe {
-                self.logical_device.device.cmd_set_scissor(
-                    self.command_buffers[current_frame],
-                    0,
-                    &scissors,
-                )
-            };
+            // let scissors = [ash::vk::Rect2D {
+            //     offset: ash::vk::Offset2D { x: 0, y: 0 },
+            //     extent: self.swapchain.extent,
+            // }];
+            // unsafe {
+            //     self.logical_device.device.cmd_set_scissor(
+            //         self.command_buffers[current_frame],
+            //         0,
+            //         &scissors,
+            //     )
+            // };
 
             self.renderer_ready = true;
         }
@@ -597,10 +595,91 @@ impl Renderer for RendererVulkan {
     //fn set_texture(&mut self, a_texture: &Box<dyn Texture>){}
 
     fn gen_command_list(&mut self) -> Box<dyn CommandList> {
-        match self.command_pool.get_command_list() {
-            Some(cmd_lst) => return cmd_lst,
+        // TODO validate begin_render has been called first
+        
+        let command_list = match self.command_pool.get_command_list() {
+            Some(cmd_lst) => cmd_lst,
             None => panic!("Unable to get vulkan command list"),
         };
+
+        match unsafe {
+            self.logical_device.device.reset_command_buffer(
+                command_list.command_buffer,
+                ash::vk::CommandBufferResetFlags::empty(),
+            )
+        } {
+            Ok(_) => {}
+            Err(res) => {
+                println!("Error: reset_command_buffer {}", res)
+            }
+        };
+
+        let begin_info = ash::vk::CommandBufferBeginInfo::builder().build();
+
+        match unsafe {
+            self.logical_device
+                .device
+                .begin_command_buffer(command_list.command_buffer, &begin_info)
+        } {
+            Ok(_) => {}
+            Err(res) => {
+                println!("Error: begin_command_buffer {}", res)
+            }
+        };
+
+        let clear_values = [ash::vk::ClearValue {
+            color: ash::vk::ClearColorValue {
+                float32: self.clear_color.to_array(),
+            },
+        }];
+        let render_pass_info = ash::vk::RenderPassBeginInfo::builder()
+            .render_pass(self.render_pass.render_pass)
+            .framebuffer(self.swapchain.framebuffers[self.image_index as usize].framebuffer)
+            .render_area(ash::vk::Rect2D {
+                offset: ash::vk::Offset2D { x: 0, y: 0 },
+                extent: self.swapchain.extent,
+            })
+            .clear_values(&clear_values)
+            .build();
+
+        unsafe {
+            self.logical_device.device.cmd_begin_render_pass(
+                command_list.command_buffer,
+                &render_pass_info,
+                ash::vk::SubpassContents::INLINE,
+            )
+        };
+
+        let viewports = [ash::vk::Viewport::builder()
+            .x(0.0)
+            .y(0.0)
+            .width(self.swapchain.extent.width as f32)
+            .height(self.swapchain.extent.height as f32)
+            .min_depth(0.0)
+            .max_depth(0.0)
+            .build()];
+
+        unsafe {
+            self.logical_device.device.cmd_set_viewport(
+                command_list.command_buffer,
+                0,
+                &viewports,
+            )
+        };
+
+        let scissors = [ash::vk::Rect2D {
+            offset: ash::vk::Offset2D { x: 0, y: 0 },
+            extent: self.swapchain.extent,
+        }];
+        unsafe {
+            self.logical_device.device.cmd_set_scissor(
+                command_list.command_buffer,
+                0,
+                &scissors,
+            )
+        };
+
+        command_list
     }
 
     fn submit_command_list(&mut self, a_command_list: Box<dyn CommandList>) {
@@ -833,16 +912,18 @@ impl RendererVulkan {
             Err(_res) => return Err(RendererError::Error),
         };
 
+        let num_command_buffers = 64;
+
         let command_pool =
-            match CommandPool::new(logical_device.clone(), physical_device.queue_family as u32) {
+            match CommandPool::new(logical_device.clone(), physical_device.queue_family as u32, num_command_buffers) {
                 Ok(res) => res,
                 Err(_res) => return Err(RendererError::Error),
             };
 
-        let command_buffers = match command_pool.allocate_command_buffer(Self::MAX_FRAMES) {
-            Ok(res) => res,
-            Err(_res) => return Err(RendererError::Error),
-        };
+        // let command_buffers = match command_pool.allocate_command_buffer(Self::MAX_FRAMES) {
+        //     Ok(res) => res,
+        //     Err(_res) => return Err(RendererError::Error),
+        // };
 
         let mut image_available_semaphores = std::vec::Vec::<Rc<Semaphore>>::new();
         let mut render_fences = std::vec::Vec::<Option<Rc<Fence>>>::new();
@@ -877,7 +958,6 @@ impl RendererVulkan {
             framebuffer_format: format,
             image_available_semaphores: image_available_semaphores,
             render_fences: render_fences,
-            command_buffers: command_buffers,
             command_pool: command_pool,
             swapchain: swapchain,
             render_pass: render_pass,

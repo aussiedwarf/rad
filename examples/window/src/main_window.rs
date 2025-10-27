@@ -228,10 +228,10 @@ impl Renderer {
 
         self.renderer.set_clear_color(col);
 
-        let mut command_list = self.renderer.gen_command_list();
-
         self.renderer
             .begin_frame(renderer_types::RendererClearType::COLOR);
+
+        let mut command_list = self.renderer.gen_command_list();
 
         self.renderer.draw_mesh(&self.camera, self.mesh.clone(), &mut command_list);
 

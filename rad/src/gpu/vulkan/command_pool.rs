@@ -13,6 +13,7 @@ impl CommandPool {
     pub fn new(
         a_logical_device: std::rc::Rc<LogicalDevice>,
         a_queue_family_index: u32,
+        a_command_buffer_count: u32,
     ) -> Result<Self, RendererError> {
         let create_info = ash::vk::CommandPoolCreateInfo::builder()
             .flags(ash::vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER)
@@ -28,28 +29,39 @@ impl CommandPool {
             }
         };
 
-        let command_buffers = std::vec::Vec::<Option<Box<CommandListVulkan>>>::new();
+        //let command_buffers = std::vec::Vec::<Option<Box<CommandListVulkan>>>::new();
+
+        let command_buffers =  match CommandPool::allocate_command_buffer(pool, a_logical_device.clone(), a_command_buffer_count)
+        {
+            Ok(res) => res,
+            Err(err) => return Err(err)
+        };
+
+        let command_lists: Vec<Option<Box<CommandListVulkan>>> = command_buffers
+            .into_iter()
+            .map(|buffer| Some(CommandListVulkan::new(buffer, a_logical_device.clone())))
+            .collect();
 
         Ok(Self {
             pool: pool,
             logical_device: a_logical_device,
-            command_buffers: command_buffers,
+            command_buffers: command_lists,
         })
     }
 
     // TODO WARNING if command pool is destroyed, the buffers are destroyed as well
-    pub fn allocate_command_buffer(
-        &self,
+    fn allocate_command_buffer(
+        a_command_pool: ash::vk::CommandPool,
+        a_logical_device: std::rc::Rc<LogicalDevice>,
         a_command_buffer_count: u32,
     ) -> Result<std::vec::Vec<ash::vk::CommandBuffer>, RendererError> {
         let allocate_info = ash::vk::CommandBufferAllocateInfo::builder()
-            .command_pool(self.pool)
+            .command_pool(a_command_pool)
             .level(ash::vk::CommandBufferLevel::PRIMARY)
             .command_buffer_count(a_command_buffer_count)
             .build();
         let command_buffers = unsafe {
-            match self
-                .logical_device
+            match a_logical_device
                 .device
                 .allocate_command_buffers(&allocate_info)
             {
@@ -65,6 +77,28 @@ impl CommandPool {
         for command_buffer in &mut self.command_buffers.iter_mut() {
             match command_buffer {
                 Some(cmd_buf) => {
+                    if cmd_buf.is_submitted {
+                        let fences = [cmd_buf.fence.fence];
+                        unsafe {
+                            let status = self.logical_device
+                                .device
+                                .get_fence_status(cmd_buf.fence.fence)
+                                .expect("could not get fence status");
+                                // .wait_for_fences(&fences, true, u64::MAX)
+                                // .expect("Failed to wait for fences");
+
+                            if(status)
+                            {
+                                self.logical_device
+                                    .device
+                                    .reset_fences(&fences)
+                                    .expect("Failed to reset fences");
+
+                                cmd_buf.is_submitted = false;
+                            }
+                        }
+                    }
+
                     if !cmd_buf.is_submitted {
                         return command_buffer.take();
                     }

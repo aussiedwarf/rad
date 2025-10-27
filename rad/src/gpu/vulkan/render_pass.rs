@@ -42,7 +42,7 @@ impl RenderPass {
             .src_subpass(ash::vk::SUBPASS_EXTERNAL)
             .dst_subpass(0)
             .src_stage_mask(ash::vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
-            .src_access_mask(ash::vk::AccessFlags::NONE)
+            .src_access_mask(ash::vk::AccessFlags::NONE)    // May need to be ash::vk::AccessFlags::COLOR_ATTACHMENT_READ | ash::vk::AccessFlags::COLOR_ATTACHMENT_WRITE according to gpt
             .dst_stage_mask(ash::vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
             .dst_access_mask(ash::vk::AccessFlags::COLOR_ATTACHMENT_WRITE)
             .dependency_flags(ash::vk::DependencyFlags::BY_REGION)
