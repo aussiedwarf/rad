@@ -3,7 +3,7 @@ pub mod filesystem {
     use std::os::raw::{c_char, c_void, c_longlong};
     use libc::FILE;
 
-    extern "C" {
+    unsafe extern "C" {
         pub fn _ftelli64(file: *mut FILE) -> c_longlong;
     }
 

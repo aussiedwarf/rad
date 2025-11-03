@@ -87,7 +87,7 @@ impl CommandPool {
                                 // .wait_for_fences(&fences, true, u64::MAX)
                                 // .expect("Failed to wait for fences");
 
-                            if(status)
+                            if status
                             {
                                 self.logical_device
                                     .device

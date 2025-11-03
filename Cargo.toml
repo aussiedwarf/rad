@@ -4,6 +4,7 @@ members = [
     "rad",
     "examples/window",
 ]
+resolver = "3"
 
 [profile.dev.package.image]
 opt-level = 3
