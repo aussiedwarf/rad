@@ -3,7 +3,10 @@ extern crate sdl2;
 use super::command_list_directx12::*;
 use crate::gpu::camera::*;
 use crate::gpu::command_list::*;
+
+#[cfg(windows)]
 use crate::gpu::directx::renderer_common::*;
+
 use crate::gpu::image::*;
 use crate::gpu::material::*;
 use crate::gpu::mesh::*;
@@ -15,6 +18,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use std::result::Result;
 // use std::sync::Arc;
+#[cfg(windows)]
 use std::vec::Vec;
 
 use glam::*;
@@ -281,8 +285,8 @@ fn print_type_of<T>(_: &T) {
 impl RendererDirectX12 {
     #[cfg(not(windows))]
     pub fn new(
-        a_video_subsystem: &sdl2::VideoSubsystem,
-        a_window: &sdl2::video::Window,
+        _a_video_subsystem: &sdl2::VideoSubsystem,
+        _a_window: &sdl2::video::Window,
     ) -> Result<Self, RendererError> {
         Err(RendererError::UnsupportedAPI)
     }

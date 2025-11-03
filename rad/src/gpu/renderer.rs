@@ -20,6 +20,8 @@ pub trait Renderer {
     //Frame to begin rendering. Render calls may now be made. Set whether to clear screen at render start
     //Reason on clearing here is vulkan rendering system has faster clear on start render
     //RendererClearColor | RendererClearDepth | RendererClearStencil
+    // TODO: Perhaps initializing will setup first frame, end end frame will submit and begin next frame
+    // TODO: Perhaps clearing should move to the command list
     fn begin_frame(&mut self, a_clear: RendererClearType);
     fn end_frame(&mut self);
 

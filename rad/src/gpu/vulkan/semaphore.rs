@@ -1,10 +1,20 @@
 use super::device::LogicalDevice;
 use crate::gpu::renderer_types::RendererError;
+use crate::gpu::resource::*;
+use std::rc::Rc;
 
 pub struct Semaphore {
     pub semaphore: ash::vk::Semaphore,
     pub logical_device: std::rc::Rc<LogicalDevice>,
 }
+
+// TODO
+// impl Resource for Semaphore {}
+pub struct SemaphoreResource {
+    pub semaphore: Rc<Semaphore>,
+}
+
+impl Resource for SemaphoreResource {}
 
 impl Semaphore {
     pub fn new(a_logical_device: std::rc::Rc<LogicalDevice>) -> Result<Self, RendererError> {

@@ -1,4 +1,3 @@
-use ash::vk;
 
 use crate::gpu::command_list::*;
 use crate::gpu::resource::*;

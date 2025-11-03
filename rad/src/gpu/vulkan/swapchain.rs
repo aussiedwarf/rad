@@ -1,10 +1,13 @@
 use crate::gpu::renderer_types::RendererError;
 
+use std::rc::Rc;
+
 use super::device::{LogicalDevice, PhysicalDevice};
 use super::framebuffer::Framebuffer;
 use super::image_view::ImageView;
 use super::instance::Instance;
 use super::render_pass::RenderPass;
+use super::semaphore::Semaphore;
 use super::surface::Surface;
 
 pub struct SwapchainBase {
@@ -21,6 +24,7 @@ pub struct Swapchain {
     pub image_views: Vec<ImageView>,
     pub swapchain_images: Vec<ash::vk::Image>,
     pub swapchain: SwapchainBase,
+    pub semaphores: Vec<Rc<Semaphore>>,
 }
 
 impl Swapchain {
@@ -75,6 +79,7 @@ impl Swapchain {
                     swapchain_loader: swapchain_loader,
                 },
                 swapchain_images: std::vec::Vec::<ash::vk::Image>::new(),
+                semaphores: std::vec::Vec::<Rc<Semaphore>>::new(),
                 logical_device: a_logical_device,
                 extent: image_extent,
             });
@@ -142,6 +147,14 @@ impl Swapchain {
             framebuffers.push(framebuffer);
         }
 
+        let mut semaphores = std::vec::Vec::<Rc<Semaphore>>::new();
+        for _ in swapchain_images.iter() {
+            semaphores.push(Rc::new(match Semaphore::new(a_logical_device.clone()) {
+                Ok(res) => res,
+                Err(_res) => return Err(RendererError::Error),
+            }));
+        }
+
         Ok(Swapchain {
             framebuffers: framebuffers,
             image_views: image_views,
@@ -149,6 +162,7 @@ impl Swapchain {
             swapchain_images: swapchain_images,
             logical_device: a_logical_device,
             extent: image_extent,
+            semaphores: semaphores,
         })
     }
 

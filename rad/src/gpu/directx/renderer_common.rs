@@ -1,5 +1,6 @@
+#[cfg(windows)]
 use crate::gpu::renderer_types::*;
-
+#[cfg(windows)]
 use std::result::Result;
 #[cfg(windows)]
 use windows::Win32::Graphics::Dxgi::*;

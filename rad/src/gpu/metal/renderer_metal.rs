@@ -468,9 +468,9 @@ impl RendererMetal {
                     sdl2::sys::SDL_SYSWM_TYPE::SDL_SYSWM_COCOA => {
                         // On macOS, the handle will be an NSView with a CAMetalLayer attached.
                         // wm_info.info.cocoa.window as *mut _
-                        let inner_info = unsafe { wm_info.info.dummy };
+                        let inner_info = wm_info.info.dummy ;
                         let view_ptr = inner_info.as_ptr() as *const *mut std::ffi::c_void;
-                        let view = unsafe { std::ptr::read_unaligned(view_ptr) };
+                        let view = std::ptr::read_unaligned(view_ptr) ;
                         if view.is_null() {
                             panic!("NSView pointer is null");
                         }
@@ -479,9 +479,9 @@ impl RendererMetal {
                     sdl2::sys::SDL_SYSWM_TYPE::SDL_SYSWM_UIKIT => {
                         // On iOS, the handle will be a UIView with a CAMetalLayer attached.
                         // wm_info.info.uikit.window as *mut _
-                        let inner_info = unsafe { wm_info.info.dummy };
+                        let inner_info = wm_info.info.dummy;
                         let view_ptr = inner_info.as_ptr() as *const *mut std::ffi::c_void;
-                        let view = unsafe { std::ptr::read_unaligned(view_ptr) };
+                        let view = std::ptr::read_unaligned(view_ptr);
                         view
                     }
                     _ => std::ptr::null_mut(),
