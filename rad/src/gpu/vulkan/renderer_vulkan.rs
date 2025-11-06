@@ -185,12 +185,12 @@ impl Renderer for RendererVulkan {
             let image_indices = [self.current_frame.image_index];
 
             let semaphore: Rc<Semaphore> = self.current_frame.last_semaphore.as_ref().expect("No semaphore found").clone();
+            let wait_semaphores = [semaphore.semaphore];
 
-            let present_info = ash::vk::PresentInfoKHR::builder()
-                .wait_semaphores(&[semaphore.semaphore])
+            let present_info = ash::vk::PresentInfoKHR::default()
+                .wait_semaphores(&wait_semaphores)
                 .swapchains(&swapchains)
-                .image_indices(&image_indices)
-                .build();
+                .image_indices(&image_indices);
 
             let window_size = self.window.lock().unwrap().inner.size();
             let window_resize = self.swapchain.extent.width != window_size.0
@@ -282,9 +282,8 @@ impl Renderer for RendererVulkan {
             std::slice::from_raw_parts(a_source.as_ptr() as *const u32, a_source.len() / 4)
         };
 
-        let create_info = ash::vk::ShaderModuleCreateInfo::builder()
-            .code(slice)
-            .build();
+        let create_info = ash::vk::ShaderModuleCreateInfo::default()
+            .code(slice);
 
         let module = match unsafe {
             self.logical_device
@@ -318,30 +317,26 @@ impl Renderer for RendererVulkan {
 
         let main_function_name = CString::new("main").unwrap();
 
-        let vertex_info = ash::vk::PipelineShaderStageCreateInfo::builder()
+        let vertex_info = ash::vk::PipelineShaderStageCreateInfo::default()
             .stage(ash::vk::ShaderStageFlags::VERTEX)
             .module(vertex_module.module)
-            .name(main_function_name.as_c_str())
-            .build();
+            .name(main_function_name.as_c_str());
 
-        let frag_info = ash::vk::PipelineShaderStageCreateInfo::builder()
+        let frag_info = ash::vk::PipelineShaderStageCreateInfo::default()
             .stage(ash::vk::ShaderStageFlags::FRAGMENT)
             .module(frag_module.module)
-            .name(main_function_name.as_c_str())
-            .build();
+            .name(main_function_name.as_c_str());
 
         let shader_stages = [vertex_info, frag_info];
 
         let vertex_state_info: vk::PipelineVertexInputStateCreateInfo =
-            ash::vk::PipelineVertexInputStateCreateInfo::builder()
+            ash::vk::PipelineVertexInputStateCreateInfo::default();
                 //.vertex_binding_descriptions(vertex_binding_descriptions)
                 //.vertex_attribute_descriptions(vertex_attribute_descriptions)
-                .build();
 
-        let vertex_assembly_info = ash::vk::PipelineInputAssemblyStateCreateInfo::builder()
+        let vertex_assembly_info = ash::vk::PipelineInputAssemblyStateCreateInfo::default()
             .primitive_restart_enable(false)
-            .topology(ash::vk::PrimitiveTopology::TRIANGLE_LIST)
-            .build();
+            .topology(ash::vk::PrimitiveTopology::TRIANGLE_LIST);
 
         let viewports = [ash::vk::Viewport {
             x: 0.0,
@@ -357,12 +352,11 @@ impl Renderer for RendererVulkan {
             extent: self.swapchain.extent,
         }];
 
-        let viewport_state_info = ash::vk::PipelineViewportStateCreateInfo::builder()
+        let viewport_state_info = ash::vk::PipelineViewportStateCreateInfo::default()
             .viewports(&viewports)
-            .scissors(&scissors)
-            .build();
+            .scissors(&scissors);
 
-        let rasterization_state_info = ash::vk::PipelineRasterizationStateCreateInfo::builder()
+        let rasterization_state_info = ash::vk::PipelineRasterizationStateCreateInfo::default()
             .depth_clamp_enable(false)
             .cull_mode(ash::vk::CullModeFlags::BACK)
             .front_face(vk::FrontFace::CLOCKWISE)
@@ -372,28 +366,25 @@ impl Renderer for RendererVulkan {
             .depth_bias_clamp(0.0)
             .depth_bias_constant_factor(0.0)
             .depth_bias_enable(false)
-            .depth_bias_slope_factor(0.0)
-            .build();
+            .depth_bias_slope_factor(0.0);
 
-        let multisample_state_create_info = ash::vk::PipelineMultisampleStateCreateInfo::builder()
+        let multisample_state_create_info = ash::vk::PipelineMultisampleStateCreateInfo::default()
             .rasterization_samples(ash::vk::SampleCountFlags::TYPE_1)
             .sample_shading_enable(false)
             .min_sample_shading(0.0)
             .alpha_to_one_enable(false)
-            .alpha_to_coverage_enable(false)
-            .build();
+            .alpha_to_coverage_enable(false);
 
-        let stencil_state = ash::vk::StencilOpState::builder()
+        let stencil_state = ash::vk::StencilOpState::default()
             .fail_op(ash::vk::StencilOp::KEEP)
             .pass_op(ash::vk::StencilOp::KEEP)
             .depth_fail_op(ash::vk::StencilOp::KEEP)
             .compare_op(ash::vk::CompareOp::ALWAYS)
             .compare_mask(0)
             .write_mask(0)
-            .reference(0)
-            .build();
+            .reference(0);
 
-        let depth_state_create_info = ash::vk::PipelineDepthStencilStateCreateInfo::builder()
+        let depth_state_create_info = ash::vk::PipelineDepthStencilStateCreateInfo::default()
             .depth_test_enable(false)
             .depth_write_enable(false)
             .depth_compare_op(ash::vk::CompareOp::LESS_OR_EQUAL)
@@ -402,10 +393,9 @@ impl Renderer for RendererVulkan {
             .front(stencil_state)
             .back(stencil_state)
             .max_depth_bounds(1.0)
-            .min_depth_bounds(0.0)
-            .build();
+            .min_depth_bounds(0.0);
 
-        let color_blend_attachment_states = [ash::vk::PipelineColorBlendAttachmentState::builder()
+        let color_blend_attachment_states = [ash::vk::PipelineColorBlendAttachmentState::default()
             .blend_enable(false)
             .color_write_mask(ash::vk::ColorComponentFlags::RGBA)
             .src_color_blend_factor(ash::vk::BlendFactor::ONE)
@@ -413,15 +403,13 @@ impl Renderer for RendererVulkan {
             .color_blend_op(ash::vk::BlendOp::ADD)
             .src_alpha_blend_factor(ash::vk::BlendFactor::ONE)
             .dst_alpha_blend_factor(ash::vk::BlendFactor::ZERO)
-            .alpha_blend_op(ash::vk::BlendOp::ADD)
-            .build()];
+            .alpha_blend_op(ash::vk::BlendOp::ADD)];
 
-        let color_blend_state = ash::vk::PipelineColorBlendStateCreateInfo::builder()
+        let color_blend_state = ash::vk::PipelineColorBlendStateCreateInfo::default()
             .logic_op_enable(false)
             .logic_op(ash::vk::LogicOp::COPY)
             .attachments(&color_blend_attachment_states)
-            .blend_constants([0.0, 0.0, 0.0, 0.0])
-            .build();
+            .blend_constants([0.0, 0.0, 0.0, 0.0]);
 
         /*
             let dynamic_states = [vk::DynamicState::VIEWPORT, vk::DynamicState::SCISSOR];
@@ -431,7 +419,7 @@ impl Renderer for RendererVulkan {
           .build();
         */
 
-        let pipeline_layout_info = ash::vk::PipelineLayoutCreateInfo::builder().build();
+        let pipeline_layout_info = ash::vk::PipelineLayoutCreateInfo::default();
 
         let pipeline_layout = match unsafe {
             self.logical_device
@@ -442,7 +430,7 @@ impl Renderer for RendererVulkan {
             Err(_res) => return Err(RendererError::ShaderCompile),
         };
 
-        let create_info = ash::vk::GraphicsPipelineCreateInfo::builder()
+        let create_info = ash::vk::GraphicsPipelineCreateInfo::default()
             .stages(&shader_stages)
             .vertex_input_state(&vertex_state_info)
             .input_assembly_state(&vertex_assembly_info)
@@ -454,8 +442,7 @@ impl Renderer for RendererVulkan {
             .layout(pipeline_layout)
             .render_pass(self.render_pass.render_pass)
             .subpass(0)
-            .base_pipeline_index(-1)
-            .build();
+            .base_pipeline_index(-1);
 
         let pipeline_infos = [create_info];
 
@@ -512,7 +499,7 @@ impl Renderer for RendererVulkan {
             }
         };
 
-        let begin_info = ash::vk::CommandBufferBeginInfo::builder().build();
+        let begin_info = ash::vk::CommandBufferBeginInfo::default();
 
         match unsafe {
             self.logical_device
@@ -530,16 +517,14 @@ impl Renderer for RendererVulkan {
                 float32: self.clear_color.to_array(),
             },
         }];
-        let render_pass_info = ash::vk::RenderPassBeginInfo::builder()
+        let render_pass_info = ash::vk::RenderPassBeginInfo::default()
             .render_pass(self.render_pass.render_pass)
             .framebuffer(self.swapchain.framebuffers[self.current_frame.image_index as usize].framebuffer)
             .render_area(ash::vk::Rect2D {
                 offset: ash::vk::Offset2D { x: 0, y: 0 },
                 extent: self.swapchain.extent,
             })
-            .clear_values(&clear_values)
-            .build();
-
+            .clear_values(&clear_values);
         unsafe {
             self.logical_device.device.cmd_begin_render_pass(
                 command_list.command_buffer,
@@ -548,14 +533,13 @@ impl Renderer for RendererVulkan {
             )
         };
 
-        let viewports = [ash::vk::Viewport::builder()
+        let viewports = [ash::vk::Viewport::default()
             .x(0.0)
             .y(0.0)
             .width(self.swapchain.extent.width as f32)
             .height(self.swapchain.extent.height as f32)
             .min_depth(0.0)
-            .max_depth(0.0)
-            .build()];
+            .max_depth(0.0)];
 
         unsafe {
             self.logical_device.device.cmd_set_viewport(
@@ -607,16 +591,14 @@ impl Renderer for RendererVulkan {
         let wait_semaphores = [self.current_frame.last_semaphore.as_ref().unwrap().semaphore];
         let wait_stages = [ash::vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
         let signal_semaphores = [command_list.semaphore.semaphore];
-
+        let command_buffers = [command_list.command_buffer];
         self.current_frame.last_semaphore = Some(command_list.semaphore.clone());
 
-
-        let submit_info = ash::vk::SubmitInfo::builder()
+        let submit_info = ash::vk::SubmitInfo::default()
             .wait_semaphores(&wait_semaphores)
             .wait_dst_stage_mask(&wait_stages)
             .signal_semaphores(&signal_semaphores)
-            .command_buffers(&[command_list.command_buffer])
-            .build();
+            .command_buffers(&command_buffers);
 
         let submits = [submit_info];
 
@@ -758,17 +740,15 @@ impl RendererVulkan {
             Err(_res) => return Err(RendererError::Error),
         };
 
-        let mut major = 1;
-        let mut minor = 0;
-        let mut patch = 0;
-
-        match entry.try_enumerate_instance_version().unwrap() {
-            Some(version) => {
-                major = vk::api_version_major(version) as i32;
-                minor = vk::api_version_minor(version) as i32;
-                patch = vk::api_version_patch(version) as i32;
+        let (major, minor, patch) = unsafe {
+            match entry.try_enumerate_instance_version().unwrap() {
+                Some(v) => (
+                    vk::api_version_major(v) as i32,
+                    vk::api_version_minor(v) as i32,
+                    vk::api_version_patch(v) as i32,
+                ),
+                None => (1, 0, 0),
             }
-            None => {}
         };
 
         let surface = match Surface::new(&a_window.lock().unwrap().inner, &entry, &instance) {

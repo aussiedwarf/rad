@@ -11,7 +11,7 @@ impl RenderPass {
         a_logical_device: std::rc::Rc<LogicalDevice>,
         a_format: ash::vk::Format,
     ) -> Result<Self, RendererError> {
-        let attachment_desc_color = ash::vk::AttachmentDescription::builder()
+        let attachment_desc_color = ash::vk::AttachmentDescription::default()
             .format(a_format)
             .samples(ash::vk::SampleCountFlags::TYPE_1)
             .load_op(ash::vk::AttachmentLoadOp::CLEAR) //also create renderpass that does not clear, or create/fetch system to generate render pass as needed
@@ -19,42 +19,37 @@ impl RenderPass {
             .stencil_load_op(ash::vk::AttachmentLoadOp::DONT_CARE)
             .stencil_store_op(ash::vk::AttachmentStoreOp::DONT_CARE)
             .initial_layout(ash::vk::ImageLayout::UNDEFINED)
-            .final_layout(ash::vk::ImageLayout::PRESENT_SRC_KHR)
-            .build();
+            .final_layout(ash::vk::ImageLayout::PRESENT_SRC_KHR);
 
         let attachment_descs = [attachment_desc_color];
 
-        let attachment_ref_color = ash::vk::AttachmentReference::builder()
+        let attachment_ref_color = ash::vk::AttachmentReference::default()
             .attachment(0)
-            .layout(ash::vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL)
-            .build();
+            .layout(ash::vk::ImageLayout::COLOR_ATTACHMENT_OPTIMAL);
 
         let attachment_refs = [attachment_ref_color];
 
-        let subpass_descr = ash::vk::SubpassDescription::builder()
+        let subpass_descr = ash::vk::SubpassDescription::default()
             .pipeline_bind_point(ash::vk::PipelineBindPoint::GRAPHICS)
-            .color_attachments(&attachment_refs)
-            .build();
+            .color_attachments(&attachment_refs);
 
         let subpasses = [subpass_descr];
 
-        let subpass_dep = ash::vk::SubpassDependency::builder()
+        let subpass_dep = ash::vk::SubpassDependency::default()
             .src_subpass(ash::vk::SUBPASS_EXTERNAL)
             .dst_subpass(0)
             .src_stage_mask(ash::vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
             .src_access_mask(ash::vk::AccessFlags::NONE)    // May need to be ash::vk::AccessFlags::COLOR_ATTACHMENT_READ | ash::vk::AccessFlags::COLOR_ATTACHMENT_WRITE according to gpt
             .dst_stage_mask(ash::vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT)
             .dst_access_mask(ash::vk::AccessFlags::COLOR_ATTACHMENT_WRITE)
-            .dependency_flags(ash::vk::DependencyFlags::BY_REGION)
-            .build();
+            .dependency_flags(ash::vk::DependencyFlags::BY_REGION);
 
         let dependencies = [subpass_dep];
 
-        let info = ash::vk::RenderPassCreateInfo::builder()
+        let info = ash::vk::RenderPassCreateInfo::default()
             .attachments(&attachment_descs)
             .subpasses(&subpasses)
-            .dependencies(&dependencies)
-            .build();
+            .dependencies(&dependencies);
         let render_pass = unsafe {
             match a_logical_device.device.create_render_pass(&info, None) {
                 Ok(res) => res,

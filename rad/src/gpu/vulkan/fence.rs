@@ -8,7 +8,7 @@ pub struct Fence {
 
 impl Fence {
     pub fn new(a_logical_device: std::rc::Rc<LogicalDevice>) -> Result<Self, RendererError> {
-        let fence_info = ash::vk::FenceCreateInfo::builder().build();
+        let fence_info = ash::vk::FenceCreateInfo::default();
 
         let fence = match unsafe { a_logical_device.device.create_fence(&fence_info, None) } {
             Ok(res) => res,

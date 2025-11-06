@@ -17,17 +17,15 @@ impl LogicalDevice {
     ) -> Result<Self, RendererError> {
         let queue_priorities = [1.0];
 
-        let queue_info = [ash::vk::DeviceQueueCreateInfo::builder()
+        let queue_info = [ash::vk::DeviceQueueCreateInfo::default()
             .queue_family_index(a_physical_device.queue_family as u32)
-            .queue_priorities(&queue_priorities)
-            .build()];
+            .queue_priorities(&queue_priorities)];
 
         let (_extension_names, extension_names_ptrs) = get_names_and_pointers(a_extensions);
 
-        let create_info = ash::vk::DeviceCreateInfo::builder()
+        let create_info = ash::vk::DeviceCreateInfo::default()
             .queue_create_infos(&queue_info)
-            .enabled_extension_names(&extension_names_ptrs)
-            .build();
+            .enabled_extension_names(&extension_names_ptrs);
         let device = unsafe {
             match a_instance
                 .instance

@@ -5,7 +5,7 @@ use ash::vk::Handle;
 use ash::Entry;
 
 pub struct Surface {
-    pub surface: ash::extensions::khr::Surface,
+    pub surface: ash::khr::surface::Instance,
     pub surface_khr: ash::vk::SurfaceKHR,
 }
 
@@ -26,7 +26,7 @@ impl Surface {
 
         let surface_khr = ash::vk::SurfaceKHR::from_raw(surface_raw);
 
-        let surface = ash::extensions::khr::Surface::new(a_entry, &a_instance.instance);
+        let surface = ash::khr::surface::Instance::new(a_entry, &a_instance.instance);
 
         Ok(Surface {
             surface: surface,

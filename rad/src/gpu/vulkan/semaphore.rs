@@ -18,7 +18,7 @@ impl Resource for SemaphoreResource {}
 
 impl Semaphore {
     pub fn new(a_logical_device: std::rc::Rc<LogicalDevice>) -> Result<Self, RendererError> {
-        let semaphore_info = ash::vk::SemaphoreCreateInfo::builder().build();
+        let semaphore_info = ash::vk::SemaphoreCreateInfo::default();
 
         let semaphore = match unsafe {
             a_logical_device

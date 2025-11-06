@@ -49,11 +49,10 @@ impl Instance {
         let (_layer_names, layer_names_ptrs) = get_names_and_pointers(&layers);
         let (_extension_names, extension_names_ptrs) = get_names_and_pointers(&extensions);
 
-        let app_info = vk::ApplicationInfo::builder()
-            .api_version(vk::make_api_version(0, 1, 0, 0))
-            .build();
+        let app_info = vk::ApplicationInfo::default()
+            .api_version(vk::make_api_version(0, 1, 0, 0));
 
-        let create_info = vk::InstanceCreateInfo::builder()
+        let create_info = vk::InstanceCreateInfo::default()
             .application_info(&app_info)
             .enabled_extension_names(&extension_names_ptrs)
             .enabled_layer_names(&layer_names_ptrs);
@@ -72,9 +71,10 @@ impl Instance {
 
     fn get_optional_instance_extensions(a_entry: &Entry, a_extensions: &mut std::vec::Vec<&str>) {
         let mut extensions = std::vec::Vec::<&str>::new();
-        let properties: Vec<vk::ExtensionProperties> = a_entry
+        let properties: Vec<vk::ExtensionProperties> = unsafe { a_entry
             .enumerate_instance_extension_properties(None)
-            .unwrap();
+            .expect("enumerate_instance_extension_properties failed")
+        };
 
         for extension in a_extensions.iter() {
             let found = properties.iter().any(|ext| {
@@ -96,7 +96,9 @@ impl Instance {
 
     fn get_optional_instance_layers(a_entry: &Entry, a_layers: &mut std::vec::Vec<&str>) {
         let mut layers = std::vec::Vec::<&str>::new();
-        let properties = a_entry.enumerate_instance_layer_properties().unwrap();
+        let properties = unsafe {
+            a_entry.enumerate_instance_layer_properties().expect("enumerate_instance_extension_properties failed")
+        };
 
         for prop in a_layers.iter() {
             let found = properties.iter().any(|layer| {
@@ -117,7 +119,9 @@ impl Instance {
     }
 
     fn check_instance_layer_support(a_entry: &Entry, a_layers: &std::vec::Vec<&str>) -> bool {
-        let properties = a_entry.enumerate_instance_layer_properties().unwrap();
+        let properties = unsafe {
+            a_entry.enumerate_instance_layer_properties().expect("enumerate_instance_extension_properties failed")
+        };
 
         for required in a_layers.iter() {
             let found = properties.iter().any(|layer| {
@@ -138,9 +142,10 @@ impl Instance {
         a_entry: &Entry,
         a_extensions: &std::vec::Vec<&str>,
     ) -> bool {
-        let properties: Vec<vk::ExtensionProperties> = a_entry
+        let properties: Vec<vk::ExtensionProperties> = unsafe { a_entry
             .enumerate_instance_extension_properties(None)
-            .unwrap();
+            .expect("enumerate_instance_extension_properties failed")
+        };
 
         for required in a_extensions.iter() {
             let found = properties.iter().any(|ext| {

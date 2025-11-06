@@ -12,7 +12,7 @@ use super::surface::Surface;
 
 pub struct SwapchainBase {
     pub swapchain: ash::vk::SwapchainKHR,
-    pub swapchain_loader: ash::extensions::khr::Swapchain,
+    pub swapchain_loader: ash::khr::swapchain::Device,
 }
 
 pub struct Swapchain {
@@ -68,7 +68,7 @@ impl Swapchain {
         let image_extent = Swapchain::get_swap_extent(&surface_capabilities, a_extent);
 
         let swapchain_loader =
-            ash::extensions::khr::Swapchain::new(&a_instance.instance, &a_logical_device.device);
+            ash::khr::swapchain::Device::new(&a_instance.instance, &a_logical_device.device);
 
         if image_extent.width == 0 || image_extent.height == 0 {
             return Ok(Swapchain {
@@ -85,7 +85,7 @@ impl Swapchain {
             });
         }
 
-        let create_info = ash::vk::SwapchainCreateInfoKHR::builder()
+        let create_info = ash::vk::SwapchainCreateInfoKHR::default()
             .surface(a_surface.surface_khr)
             .min_image_count(min_image_count)
             .image_format(a_format.format)
@@ -97,8 +97,7 @@ impl Swapchain {
             .pre_transform(surface_capabilities.current_transform)
             .composite_alpha(ash::vk::CompositeAlphaFlagsKHR::OPAQUE)
             .present_mode(present_mode)
-            .clipped(true)
-            .build();
+            .clipped(true);
 
         let swapchain = unsafe {
             match swapchain_loader.create_swapchain(&create_info, None) {

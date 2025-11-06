@@ -15,10 +15,9 @@ impl CommandPool {
         a_queue_family_index: u32,
         a_command_buffer_count: u32,
     ) -> Result<Self, RendererError> {
-        let create_info = ash::vk::CommandPoolCreateInfo::builder()
+        let create_info = ash::vk::CommandPoolCreateInfo::default()
             .flags(ash::vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER)
-            .queue_family_index(a_queue_family_index)
-            .build();
+            .queue_family_index(a_queue_family_index);
         let pool = unsafe {
             match a_logical_device
                 .device
@@ -55,11 +54,10 @@ impl CommandPool {
         a_logical_device: std::rc::Rc<LogicalDevice>,
         a_command_buffer_count: u32,
     ) -> Result<std::vec::Vec<ash::vk::CommandBuffer>, RendererError> {
-        let allocate_info = ash::vk::CommandBufferAllocateInfo::builder()
+        let allocate_info = ash::vk::CommandBufferAllocateInfo::default()
             .command_pool(a_command_pool)
             .level(ash::vk::CommandBufferLevel::PRIMARY)
-            .command_buffer_count(a_command_buffer_count)
-            .build();
+            .command_buffer_count(a_command_buffer_count);
         let command_buffers = unsafe {
             match a_logical_device
                 .device

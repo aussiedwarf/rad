@@ -17,13 +17,12 @@ impl Framebuffer {
     ) -> Result<Self, RendererError> {
         let attachments = [a_image_view.view];
 
-        let info = ash::vk::FramebufferCreateInfo::builder()
+        let info = ash::vk::FramebufferCreateInfo::default()
             .render_pass(a_render_pass.render_pass)
             .attachments(&attachments)
             .width(a_extent.width)
             .height(a_extent.height)
-            .layers(1)
-            .build();
+            .layers(1);
 
         let framebuffer = unsafe {
             match a_logical_device.device.create_framebuffer(&info, None) {

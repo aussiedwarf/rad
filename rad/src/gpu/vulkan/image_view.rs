@@ -12,7 +12,7 @@ impl ImageView {
         a_image: &ash::vk::Image,
         a_format: ash::vk::Format,
     ) -> Result<Self, RendererError> {
-        let create_info = ash::vk::ImageViewCreateInfo::builder()
+        let create_info = ash::vk::ImageViewCreateInfo::default()
             .image(*a_image)
             .view_type(ash::vk::ImageViewType::TYPE_2D)
             .format(a_format)
@@ -22,8 +22,7 @@ impl ImageView {
                 level_count: 1,
                 base_array_layer: 0,
                 layer_count: 1,
-            })
-            .build();
+            });
 
         let view = unsafe {
             match a_logical_device
