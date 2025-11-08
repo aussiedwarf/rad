@@ -67,7 +67,7 @@ pub struct RendererVulkan {
 
     renderer_ready: bool,
 
-    window: Arc<Mutex<UnsafeSend<sdl2::video::Window>>>,
+    window: Arc<Mutex<UnsafeSend<sdl3::video::Window>>>,
 
     // Order matters here so that instance is destroyed last
     framebuffer_format: ash::vk::SurfaceFormatKHR,
@@ -718,7 +718,7 @@ impl RendererVulkan {
     pub const MAX_FRAMES: u32 = 2;
 
     pub fn new(
-        a_window: Arc<Mutex<UnsafeSend<sdl2::video::Window>>>,
+        a_window: Arc<Mutex<UnsafeSend<sdl3::video::Window>>>,
         a_enable_validation_layers: bool,
     ) -> Result<Self, RendererError> {
         /*

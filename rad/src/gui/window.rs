@@ -1,4 +1,4 @@
-extern crate sdl2;
+extern crate sdl3;
 use crate::core::unsafe_send::UnsafeSend;
 use crate::gpu::directx::renderer_directx12;
 use crate::gpu::metal::renderer_metal;
@@ -37,12 +37,12 @@ pub struct Window {
     active: bool,
     pub width: u32,
     pub height: u32,
-    pub sdl_context: Arc<Mutex<UnsafeSend<sdl2::Sdl>>>,
-    pub video_subsystem: Arc<Mutex<UnsafeSend<sdl2::VideoSubsystem>>>,
-    pub window: Arc<Mutex<UnsafeSend<sdl2::video::Window>>>,
+    pub sdl_context: Arc<Mutex<UnsafeSend<sdl3::Sdl>>>,
+    pub video_subsystem: Arc<Mutex<UnsafeSend<sdl3::VideoSubsystem>>>,
+    pub window: Arc<Mutex<UnsafeSend<sdl3::video::Window>>>,
     //raw_window_handle: RawWindowHandle,
     //pub renderer: Box<dyn renderer::Renderer>,
-    pub renderer_type: renderer_types::RendererType, //canvas: sdl2::render::WindowCanvas
+    pub renderer_type: renderer_types::RendererType, //canvas: sdl3::render::WindowCanvas
 }
 
 impl Window {
@@ -55,7 +55,7 @@ impl Window {
         a_y: i32,
         a_flags: u32,
     ) -> Result<Window, WindowError> {
-        let sdl_context = match sdl2::init() {
+        let sdl_context = match sdl3::init() {
             Ok(res) => res,
             Err(_res) => return Err(WindowError::SdlInitError),
         };
@@ -158,7 +158,7 @@ impl Window {
         a_renderer_type: renderer_types::RendererType,
         a_min_version: renderer_types::Version,
         a_max_version: renderer_types::Version,
-        a_video_subsystem: &sdl2::VideoSubsystem,
+        a_video_subsystem: &sdl3::VideoSubsystem,
         a_window: Arc<Window>,
     ) -> Result<Box<dyn renderer::Renderer>, WindowError> {
         let is_gles = a_renderer_type == renderer_types::RendererType::OpenGLES;
@@ -203,14 +203,14 @@ impl Window {
     }
 
     fn init_window(
-        a_video_subsystem: &sdl2::VideoSubsystem,
+        a_video_subsystem: &sdl3::VideoSubsystem,
         a_name: &str,
         a_width: u32,
         a_height: u32,
         a_x: i32,
         a_y: i32,
         a_flags: u32,
-    ) -> Result<sdl2::video::Window, sdl2::video::WindowBuildError> {
+    ) -> Result<sdl3::video::Window, sdl3::video::WindowBuildError> {
         a_video_subsystem
             .window(a_name, a_width, a_height)
             .position(a_x, a_y)
@@ -219,14 +219,14 @@ impl Window {
     }
 
     fn init_window_opengl(
-        a_video_subsystem: &sdl2::VideoSubsystem,
+        a_video_subsystem: &sdl3::VideoSubsystem,
         a_name: &str,
         a_width: u32,
         a_height: u32,
         a_x: i32,
         a_y: i32,
         a_flags: u32,
-    ) -> Result<sdl2::video::Window, sdl2::video::WindowBuildError> {
+    ) -> Result<sdl3::video::Window, sdl3::video::WindowBuildError> {
         a_video_subsystem
             .window(a_name, a_width, a_height)
             .position(a_x, a_y)
@@ -236,14 +236,14 @@ impl Window {
     }
 
     fn init_window_vulkan(
-        a_video_subsystem: &sdl2::VideoSubsystem,
+        a_video_subsystem: &sdl3::VideoSubsystem,
         a_name: &str,
         a_width: u32,
         a_height: u32,
         a_x: i32,
         a_y: i32,
         a_flags: u32,
-    ) -> Result<sdl2::video::Window, sdl2::video::WindowBuildError> {
+    ) -> Result<sdl3::video::Window, sdl3::video::WindowBuildError> {
         a_video_subsystem
             .window(a_name, a_width, a_height)
             .position(a_x, a_y)
@@ -253,14 +253,14 @@ impl Window {
     }
 
     fn init_window_metal(
-        a_video_subsystem: &sdl2::VideoSubsystem,
+        a_video_subsystem: &sdl3::VideoSubsystem,
         a_name: &str,
         a_width: u32,
         a_height: u32,
         a_x: i32,
         a_y: i32,
         a_flags: u32,
-    ) -> Result<sdl2::video::Window, sdl2::video::WindowBuildError> {
+    ) -> Result<sdl3::video::Window, sdl3::video::WindowBuildError> {
         a_video_subsystem
             .window(a_name, a_width, a_height)
             .position(a_x, a_y)

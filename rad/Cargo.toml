@@ -24,11 +24,13 @@ image = {version = "0.25.8", default-features = false, features = ["png", "jpeg"
 strum = "0.27.2"
 strum_macros = "0.27.2"
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-sdl2 = { git = "https://github.com/Rust-SDL2/rust-sdl2.git", rev = "400e033", default-features = false, features = ["static-link", "bundled", "raw-window-handle"] }
+#[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+#sdl2 = { git = "https://github.com/Rust-SDL2/rust-sdl2.git", rev = "400e033", default-features = false, features = ["static-link", "bundled", "raw-window-handle"] }
 
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-sdl2 = { git = "https://github.com/Rust-SDL2/rust-sdl2.git", rev = "400e033", default-features = false, features = ["static-link", "bundled"] }
+#[target.'cfg(target_arch = "wasm32")'.dependencies]
+#sdl2 = { git = "https://github.com/Rust-SDL2/rust-sdl2.git", rev = "400e033", default-features = false, features = ["static-link", "bundled"] }
+
+sdl3 = { version = "0.16.1", default-features = false, features = ["ash", "static-link", "build-from-source", "raw-window-handle"] }
 
 [target.'cfg(windows)'.dependencies.windows]
 version = "~0.48.0"

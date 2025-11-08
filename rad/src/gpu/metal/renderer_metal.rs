@@ -319,7 +319,7 @@ impl Renderer for RendererMetal {
 impl RendererMetal {
     #[cfg(not(target_vendor = "apple"))]
     pub fn new(
-        _a_video_subsystem: &sdl2::VideoSubsystem,
+        _a_video_subsystem: &sdl3::VideoSubsystem,
         _a_window: Arc<Window>,
     ) -> Result<Self, RendererError> {
         Err(RendererError::UnsupportedAPI)
@@ -327,7 +327,7 @@ impl RendererMetal {
 
     #[cfg(target_vendor = "apple")]
     pub fn new(
-        a_video_subsystem: &sdl2::VideoSubsystem,
+        a_video_subsystem: &sdl3::VideoSubsystem,
         a_window: Arc<Window>,
     ) -> Result<Self, RendererError> {
         let is_main_thread: bool = unsafe { objc::msg_send![objc::class!(NSThread), isMainThread] };
@@ -403,10 +403,10 @@ impl RendererMetal {
     }
 
     #[cfg(target_vendor = "apple")]
-    fn create_metal_view(window: &sdl2::video::Window) -> *mut core::ffi::c_void {
+    fn create_metal_view(window: &sdl3::video::Window) -> *mut core::ffi::c_void {
         unsafe {
-            let raw_window = window.raw() as *mut sdl2::sys::SDL_Window;
-            let metal_view = sdl2::sys::SDL_Metal_CreateView(raw_window);
+            let raw_window = window.raw() as *mut sdl3::sys::SDL_Window;
+            let metal_view = sdl3::sys::SDL_Metal_CreateView(raw_window);
 
             if metal_view.is_null() {
                 panic!("Failed to create Metal view");
@@ -419,7 +419,7 @@ impl RendererMetal {
     #[cfg(target_vendor = "apple")]
     fn get_metal_layer(metal_view: *mut core::ffi::c_void) -> *mut core::ffi::c_void {
         unsafe {
-            let layer = sdl2::sys::SDL_Metal_GetLayer(metal_view);
+            let layer = sdl3::sys::SDL_Metal_GetLayer(metal_view);
 
             if layer.is_null() {
                 panic!("Failed to retrieve CAMetalLayer");
@@ -449,23 +449,24 @@ impl RendererMetal {
         // }
     }
 
-    // attemopt at getting view. can probably delete
-    fn get_nsview(window: &sdl2::video::Window) -> *mut std::ffi::c_void {
-        let mut wm_info: sdl2::sys::SDL_SysWMinfo = unsafe { std::mem::zeroed() };
-        wm_info.version.major = sdl2::version::version().major;
-        wm_info.version.minor = sdl2::version::version().minor;
-        wm_info.version.patch = sdl2::version::version().patch;
+    // attempt at getting view. can probably delete
+    /*
+    fn get_nsview(window: &sdl3::video::Window) -> *mut std::ffi::c_void {
+        let mut wm_info: sdl3::sys::SDL_SysWMinfo = unsafe { std::mem::zeroed() };
+        wm_info.version.major = sdl3::version::version().major;
+        wm_info.version.minor = sdl3::version::version().minor;
+        wm_info.version.patch = sdl3::version::version().patch;
 
         unsafe {
-            if sdl2::sys::SDL_GetWindowWMInfo(
-                window.raw() as *mut sdl2::sys::SDL_Window,
+            if sdl3::sys::SDL_GetWindowWMInfo(
+                window.raw() as *mut sdl3::sys::SDL_Window,
                 &mut wm_info as *mut _,
-            ) == sdl2::sys::SDL_bool::SDL_TRUE
+            ) == sdl3::sys::SDL_bool::SDL_TRUE
             {
                 // rust sdl package is missing apple and windows in SDL_SysWMinfo
                 // bindgen supposedly adds it but sdl does not then compile
                 match wm_info.subsystem {
-                    sdl2::sys::SDL_SYSWM_TYPE::SDL_SYSWM_COCOA => {
+                    sdl3::sys::SDL_SYSWM_TYPE::SDL_SYSWM_COCOA => {
                         // On macOS, the handle will be an NSView with a CAMetalLayer attached.
                         // wm_info.info.cocoa.window as *mut _
                         let inner_info = wm_info.info.dummy ;
@@ -476,7 +477,7 @@ impl RendererMetal {
                         }
                         view
                     }
-                    sdl2::sys::SDL_SYSWM_TYPE::SDL_SYSWM_UIKIT => {
+                    sdl3::sys::SDL_SYSWM_TYPE::SDL_SYSWM_UIKIT => {
                         // On iOS, the handle will be a UIView with a CAMetalLayer attached.
                         // wm_info.info.uikit.window as *mut _
                         let inner_info = wm_info.info.dummy;
@@ -491,6 +492,7 @@ impl RendererMetal {
             }
         }
     }
+    */
 
     pub fn update_uniform(&self, _a_uniform: &mut Box<dyn Uniform>) {}
 

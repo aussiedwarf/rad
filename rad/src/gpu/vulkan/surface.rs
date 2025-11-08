@@ -1,7 +1,6 @@
 use super::device::PhysicalDevice;
 use super::instance::Instance;
 use crate::gpu::renderer_types::*;
-use ash::vk::Handle;
 use ash::Entry;
 
 pub struct Surface {
@@ -11,21 +10,18 @@ pub struct Surface {
 
 impl Surface {
     pub fn new(
-        a_window: &sdl2::video::Window,
+        a_window: &sdl3::video::Window,
         a_entry: &Entry,
         a_instance: &Instance,
     ) -> Result<Self, RendererError> {
-        let surface_raw =
-            match a_window.vulkan_create_surface(a_instance.instance.handle().as_raw() as usize) {
-                Ok(res) => res,
-                Err(res) => {
-                    println!("{}", res);
-                    return Err(RendererError::Error);
-                }
-            };
-
-        let surface_khr = ash::vk::SurfaceKHR::from_raw(surface_raw);
-
+        let vk_inst: ash::vk::Instance = a_instance.instance.handle();
+        let surface_khr: ash::vk::SurfaceKHR = match a_window.vulkan_create_surface(vk_inst){
+            Ok(res) => res,
+            Err(res) => {
+                println!("{}", res);
+                return Err(RendererError::Error);
+            }
+        };
         let surface = ash::khr::surface::Instance::new(a_entry, &a_instance.instance);
 
         Ok(Surface {

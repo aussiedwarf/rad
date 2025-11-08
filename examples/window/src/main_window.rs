@@ -1,4 +1,4 @@
-extern crate sdl2;
+extern crate sdl3;
 //extern crate raw_window_handle;
 extern crate libc;
 
@@ -18,8 +18,8 @@ use rad::core::filesystem::filesystem;
 
 //use raw_window_handle::{HasRawWindowHandle, RawWindowHandle};
 
-use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
+use sdl3::event::Event;
+use sdl3::keyboard::Keycode;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -258,10 +258,10 @@ impl MainWindow {
             "Title",
             800,
             600,
-            sdl2::sys::SDL_WINDOWPOS_CENTERED_MASK as i32,
-            sdl2::sys::SDL_WINDOWPOS_CENTERED_MASK as i32,
-            sdl2::sys::SDL_WindowFlags::SDL_WINDOW_RESIZABLE as u32
-                | sdl2::sys::SDL_WindowFlags::SDL_WINDOW_ALLOW_HIGHDPI as u32,
+            0,
+            0,
+            sdl3_sys::video::SDL_WINDOW_RESIZABLE as u32
+                | sdl3_sys::video::SDL_WINDOW_HIGH_PIXEL_DENSITY as u32,
         ) {
             Ok(res) => {
                 return Ok(MainWindow {

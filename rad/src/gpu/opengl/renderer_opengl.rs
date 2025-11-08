@@ -165,7 +165,7 @@ impl UniformShader for UniformShaderOpenGL {
 }
 
 pub struct RendererOpenGL {
-    pub gl_context: sdl2::video::GLContext,
+    pub gl_context: sdl3::video::GLContext,
     pub version_major: i32,
     pub version_minor: i32,
 
@@ -716,7 +716,7 @@ impl RendererOpenGL {
     const GLES_MAX_VERSION_MINOR: [i32; 4] = [0, 1, 0, 2];
 
     pub fn new(
-        a_video_subsystem: &sdl2::VideoSubsystem,
+        a_video_subsystem: &sdl3::VideoSubsystem,
         a_min_version: Version,
         a_max_version: Version,
         a_window: Arc<Window>,
@@ -743,11 +743,16 @@ impl RendererOpenGL {
             },
         };
 
-        gl::load_with(|s| a_video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
+        gl::load_with(|s| {
+            a_video_subsystem
+                .gl_get_proc_address(s)
+                .map(|f| f as *const () as *const std::os::raw::c_void)
+                .unwrap_or(core::ptr::null())
+        });
 
         // // swap interval requires emscripten main loop to be set first
         // #[cfg(not(target_os = "emscripten"))]
-        // match a_video_subsystem.gl_set_swap_interval(sdl2::video::SwapInterval::Immediate){
+        // match a_video_subsystem.gl_set_swap_interval(sdl3::video::SwapInterval::Immediate){
         //   Ok(_res) => _res,
         //   Err(_res) => print!("Unable to set vsync\n")
         // };
@@ -967,11 +972,11 @@ fn get_gles_version_minor(
 }
 
 fn init_gl_context(
-    a_video_subsystem: &sdl2::VideoSubsystem,
+    a_video_subsystem: &sdl3::VideoSubsystem,
     a_min_version: Version,
     a_max_version: Version,
-    a_window: &sdl2::video::Window,
-) -> Result<sdl2::video::GLContext, RendererError> {
+    a_window: &sdl3::video::Window,
+) -> Result<sdl3::video::GLContext, RendererError> {
     let mut version_major = get_gl_version_major(a_max_version.major);
 
     let mut version_minor = match get_gl_version_minor(version_major, a_max_version.minor) {
@@ -989,7 +994,7 @@ fn init_gl_context(
 
     loop {
         if version_major > 2 {
-            gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
+            gl_attr.set_context_profile(sdl3::video::GLProfile::Core);
         }
 
         gl_attr.set_context_version(version_major as u8, version_minor as u8);
@@ -1021,11 +1026,11 @@ fn init_gl_context(
 }
 
 fn init_gles_context(
-    a_video_subsystem: &sdl2::VideoSubsystem,
+    a_video_subsystem: &sdl3::VideoSubsystem,
     a_min_version: Version,
     a_max_version: Version,
-    a_window: &sdl2::video::Window,
-) -> Result<sdl2::video::GLContext, RendererError> {
+    a_window: &sdl3::video::Window,
+) -> Result<sdl3::video::GLContext, RendererError> {
     let mut version_major = get_gles_version_major(a_max_version.major);
 
     let mut version_minor = match get_gles_version_minor(version_major, a_max_version.minor) {
@@ -1043,7 +1048,7 @@ fn init_gles_context(
 
     loop {
         if version_major > 2 {
-            gl_attr.set_context_profile(sdl2::video::GLProfile::GLES);
+            gl_attr.set_context_profile(sdl3::video::GLProfile::GLES);
         }
 
         gl_attr.set_context_version(version_major as u8, version_minor as u8);

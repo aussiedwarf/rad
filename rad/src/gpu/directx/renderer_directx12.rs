@@ -1,4 +1,4 @@
-extern crate sdl2;
+extern crate sdl3;
 
 use super::command_list_directx12::*;
 use crate::gpu::camera::*;
@@ -285,16 +285,16 @@ fn print_type_of<T>(_: &T) {
 impl RendererDirectX12 {
     #[cfg(not(windows))]
     pub fn new(
-        _a_video_subsystem: &sdl2::VideoSubsystem,
-        _a_window: &sdl2::video::Window,
+        _a_video_subsystem: &sdl3::VideoSubsystem,
+        _a_window: &sdl3::video::Window,
     ) -> Result<Self, RendererError> {
         Err(RendererError::UnsupportedAPI)
     }
 
     #[cfg(windows)]
     pub fn new(
-        _a_video_subsystem: &sdl2::VideoSubsystem,
-        a_window: &sdl2::video::Window,
+        _a_video_subsystem: &sdl3::VideoSubsystem,
+        a_window: &sdl3::video::Window,
     ) -> Result<Self, RendererError> {
         let factory = match get_factory() {
             Ok(res) => res,
@@ -306,14 +306,14 @@ impl RendererDirectX12 {
             Err(res) => return Err(res),
         };
 
-        let mut info: sdl2::sys::SDL_SysWMinfo = unsafe { std::mem::zeroed() };
-        //sdl2::sys::SDL_VERSION(&mut info.version);
+        let mut info: sdl3::sys::SDL_SysWMinfo = unsafe { std::mem::zeroed() };
+        //sdl3::sys::SDL_VERSION(&mut info.version);
 
-        info.version.major = sdl2::version::version().major;
-        info.version.minor = sdl2::version::version().minor;
-        info.version.patch = sdl2::version::version().patch;
+        info.version.major = sdl3::version::version().major;
+        info.version.minor = sdl3::version::version().minor;
+        info.version.patch = sdl3::version::version().patch;
         unsafe {
-            sdl2::sys::SDL_GetWindowWMInfo(a_window.raw() as *mut sdl2::sys::SDL_Window, &mut info)
+            sdl3::sys::SDL_GetWindowWMInfo(a_window.raw() as *mut sdl3::sys::SDL_Window, &mut info)
         };
 
         // rust sdl package is missing win in SDL_SysWMinfo

@@ -13,11 +13,8 @@ glam = "0.30.9"
 image = {version = "0.25.8", default-features = false, features = ["png", "jpeg", "bmp"]}
 libc = "0.2.177"
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
-sdl2 = { git = "https://github.com/Rust-SDL2/rust-sdl2.git", rev = "400e033", default-features = false, features = ["static-link", "bundled", "raw-window-handle"] }
-
-[target.'cfg(target_arch = "wasm32")'.dependencies]
-sdl2 = { git = "https://github.com/Rust-SDL2/rust-sdl2.git", rev = "400e033", default-features = false, features = ["static-link", "bundled"] }
+sdl3 = { version = "0.16.1", default-features = false, features = ["ash", "static-link", "build-from-source", "raw-window-handle"] }
+sdl3-sys = "0.5.10"
 
 [target.'cfg(target_os = "emscripten")'.features]
 default = ["pthread"]
