@@ -27,7 +27,6 @@ use crate::gpu::renderer::*;
 use crate::gpu::renderer_types::*;
 use crate::gpu::resource::*;
 use crate::gpu::uniforms::*;
-use crate::gpu::vulkan::semaphore::SemaphoreResource;
 
 struct FrameInFlight {
     image_ready_semaphore: Rc<Semaphore>,
@@ -265,7 +264,7 @@ impl Renderer for RendererVulkan {
         &mut self,
         _shader_type: ShaderType,
         _source: &str,
-    ) -> Result<Box<dyn Shader>, RendererError> {
+    ) -> Result<Arc<dyn Shader>, RendererError> {
         return Err(RendererError::Unimplemented);
     }
 
@@ -273,7 +272,7 @@ impl Renderer for RendererVulkan {
         &mut self,
         _shader_type: ShaderType,
         a_source: &std::vec::Vec<u8>,
-    ) -> Result<Box<dyn Shader>, RendererError> {
+    ) -> Result<Arc<dyn Shader>, RendererError> {
         if a_source.len() % 4 != 0 {
             return Err(RendererError::Error);
         }
@@ -294,7 +293,7 @@ impl Renderer for RendererVulkan {
             Err(_res) => return Err(RendererError::Error),
         };
 
-        Ok(Box::new(ShaderVulkan {
+        Ok(Arc::new(ShaderVulkan {
             module: module,
             logical_device: self.logical_device.clone(),
         }))
@@ -302,9 +301,9 @@ impl Renderer for RendererVulkan {
 
     fn load_program_vert_frag(
         &mut self,
-        a_shader_vert: Box<dyn Shader>,
-        a_shader_frag: Box<dyn Shader>,
-    ) -> Result<Box<dyn Program>, RendererError> {
+        a_shader_vert: Arc<dyn Shader>,
+        a_shader_frag: Arc<dyn Shader>,
+    ) -> Result<Arc<dyn Program>, RendererError> {
         let vertex_module = match a_shader_vert.any().downcast_ref::<ShaderVulkan>() {
             Some(res) => res,
             None => return Err(RendererError::InvalidCast),
@@ -457,7 +456,7 @@ impl Renderer for RendererVulkan {
             Err(_res) => return Err(RendererError::ShaderCompile),
         };
 
-        Ok(Box::new(ProgramVulkan {
+        Ok(Arc::new(ProgramVulkan {
             pipeline: graphics_pipelines[0],
             pipeline_layout: pipeline_layout,
             logical_device: self.logical_device.clone(),
@@ -466,7 +465,7 @@ impl Renderer for RendererVulkan {
 
     fn get_uniform(
         &mut self,
-        _shader: &mut Box<dyn Program>,
+        _shader: &mut Arc<dyn Program>,
         a_name: &str,
     ) -> Box<dyn UniformShader> {
         Box::new(UniformShaderVulkan {
@@ -628,44 +627,41 @@ impl Renderer for RendererVulkan {
         //self.command_pool.release_command_list(command_list);
     }
 
-    fn gen_buffer_vertex(&mut self, _verts: &std::vec::Vec<f32>) -> Box<dyn Vertices> {
-        Box::new(VerticesVulkan { id: 0 })
+    fn gen_buffer_vertex(&mut self, _verts: &std::vec::Vec<f32>) -> Arc<dyn Vertices> {
+        Arc::new(VerticesVulkan { id: 0 })
     }
 
-    fn gen_geometry(&mut self, _buffer: &Box<dyn Vertices>) -> Box<dyn Geometry> {
-        Box::new(GeometryVulkan { id: 0 })
+    fn gen_geometry(&mut self, _buffer: Arc<dyn Vertices>) -> Arc<dyn Geometry> {
+        Arc::new(GeometryVulkan { id: 0 })
     }
 
     fn gen_mesh(
         &mut self,
-        a_geometry: Box<dyn Geometry>,
-        a_material: Box<dyn Material>,
-    ) -> Rc<RefCell<Mesh>> {
-        Rc::new(RefCell::new(Mesh {
+        a_geometry: Arc<dyn Geometry>,
+        a_material: Arc<dyn Material>,
+    ) -> Arc<Mesh> {
+        Arc::new(Mesh {
             geometry: a_geometry,
             material: a_material,
-        }))
+        })
     }
 
-    fn gen_buffer_texture(&mut self) -> Box<dyn Texture> {
-        Box::new(TextureVulkan { id: 0 })
+    fn gen_buffer_texture(&mut self) -> Arc<dyn Texture> {
+        Arc::new(TextureVulkan { id: 0 })
     }
 
-    fn gen_sampler(&mut self, _texture: Rc<dyn Texture>) -> Box<dyn Sampler> {
+    fn gen_sampler(&mut self, _texture: Arc<dyn Texture>) -> Box<dyn Sampler> {
         Box::new(SamplerVulkan {
             name: String::from(""),
         })
     }
 
-    fn load_texture(&mut self, _image: &image::DynamicImage, _texture: &mut Box<dyn Texture>) {}
+    fn load_texture(&mut self, _image: &image::DynamicImage, _texture: Arc<dyn Texture>) {}
 
-    fn use_program(&mut self, _program: &Box<dyn Program>) {}
-
-    fn draw_geometry(&mut self, _geometry: &Box<dyn Geometry>) {}
     fn draw_mesh(
         &mut self,
         _camera: &Camera,
-        a_mesh: Rc<RefCell<Mesh>>,
+        a_mesh: Arc<Mesh>,
         a_command_list: &mut Box<dyn CommandList>,
     ) {
         if !self.renderer_ready {
@@ -677,12 +673,8 @@ impl Renderer for RendererVulkan {
             None => panic!("Invalid cast of CommandList to CommandListVulkan"),
         };
 
-        // let geometry = match a_mesh.geometry.any().downcast_ref::<GeometryVulkan>() {
-        //   Some(res) => res,
-        //   None => return
-        // };
-        let mesh = a_mesh.borrow();
-        let program_rc = mesh.material.get_program();
+        //let mesh = a_mesh.borrow();
+        let program_rc = a_mesh.material.get_program();
         let program = match program_rc.any().downcast_ref::<ProgramVulkan>() {
             Some(res) => res,
             None => panic!("Invalid cast of Program to ProgramVulkan"),

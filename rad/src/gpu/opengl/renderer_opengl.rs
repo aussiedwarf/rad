@@ -1,9 +1,7 @@
 extern crate gl;
 
 use glam::*;
-use std::cell::RefCell;
 use std::ffi::CString;
-use std::rc::Rc;
 use std::sync::Arc;
 
 use super::command_list_opengl::*;
@@ -19,7 +17,7 @@ use crate::gui::window::Window;
 
 pub struct SamplerOpenGL {
     name: String,
-    texture: Rc<dyn Texture>,
+    texture: Arc<dyn Texture>,
     uniform: gl::types::GLint,
 }
 
@@ -274,7 +272,7 @@ impl Renderer for RendererOpenGL {
         &mut self,
         a_shader_type: ShaderType,
         a_source: &str,
-    ) -> Result<Box<dyn Shader>, RendererError> {
+    ) -> Result<Arc<dyn Shader>, RendererError> {
         /*
         let id = match a_shader_type {
           Vertex => unsafe { gl::CreateShader(gl::VERTEX_SHADER) },
@@ -340,22 +338,22 @@ impl Renderer for RendererOpenGL {
             return Err(RendererError::Error);
         }
 
-        Ok(Box::new(ShaderOpenGL { id: id }))
+        Ok(Arc::new(ShaderOpenGL { id: id }))
     }
 
     fn load_shader_intermediate(
         &mut self,
         _a_shader_type: ShaderType,
         _a_source: &std::vec::Vec<u8>,
-    ) -> Result<Box<dyn Shader>, RendererError> {
+    ) -> Result<Arc<dyn Shader>, RendererError> {
         return Err(RendererError::Unimplemented);
     }
 
     fn load_program_vert_frag(
         &mut self,
-        a_shader_vert: Box<dyn Shader>,
-        a_shader_frag: Box<dyn Shader>,
-    ) -> Result<Box<dyn Program>, RendererError> {
+        a_shader_vert: Arc<dyn Shader>,
+        a_shader_frag: Arc<dyn Shader>,
+    ) -> Result<Arc<dyn Program>, RendererError> {
         let program_id = unsafe { gl::CreateProgram() };
 
         let shader_vert = match a_shader_vert.any().downcast_ref::<ShaderOpenGL>() {
@@ -409,12 +407,12 @@ impl Renderer for RendererOpenGL {
             return Err(RendererError::Error);
         }
 
-        Ok(Box::new(ProgramOpenGL { id: program_id }))
+        Ok(Arc::new(ProgramOpenGL { id: program_id }))
     }
 
     fn get_uniform(
         &mut self,
-        a_shader: &mut Box<dyn Program>,
+        a_shader: &mut Arc<dyn Program>,
         a_name: &str,
     ) -> Box<dyn UniformShader> {
         let shader = match a_shader.any().downcast_ref::<ProgramOpenGL>() {
@@ -463,7 +461,7 @@ impl Renderer for RendererOpenGL {
 
     fn submit_command_list(&mut self, _a_command_list: Box<dyn CommandList>) {}
 
-    fn gen_buffer_vertex(&mut self, a_verts: &std::vec::Vec<f32>) -> Box<dyn Vertices> {
+    fn gen_buffer_vertex(&mut self, a_verts: &std::vec::Vec<f32>) -> Arc<dyn Vertices> {
         let mut vbo: gl::types::GLuint = 0;
         unsafe {
             gl::GenBuffers(1, &mut vbo);
@@ -480,13 +478,13 @@ impl Renderer for RendererOpenGL {
             gl::BindBuffer(gl::ARRAY_BUFFER, 0); // unbind the buffer
         }
 
-        Box::new(VerticesOpenGL {
+        Arc::new(VerticesOpenGL {
             id: vbo,
             num: (a_verts.len() / 4) as gl::types::GLsizei,
         })
     }
 
-    fn gen_geometry(&mut self, a_buffer: &Box<dyn Vertices>) -> Box<dyn Geometry> {
+    fn gen_geometry(&mut self, a_buffer: Arc<dyn Vertices>) -> Arc<dyn Geometry> {
         let buffer = match a_buffer.any().downcast_ref::<VerticesOpenGL>() {
             Some(res) => res,
             None => panic!("Invalid vertex"),
@@ -521,7 +519,7 @@ impl Renderer for RendererOpenGL {
             gl::BindBuffer(gl::ARRAY_BUFFER, 0);
             gl::BindVertexArray(0);
         }
-        Box::new(GeometryOpenGL {
+        Arc::new(GeometryOpenGL {
             vao: vao,
             num: buffer.num,
         })
@@ -529,29 +527,29 @@ impl Renderer for RendererOpenGL {
 
     fn gen_mesh(
         &mut self,
-        a_geometry: Box<dyn Geometry>,
-        a_material: Box<dyn Material>,
-    ) -> Rc<RefCell<Mesh>> {
-        Rc::new(RefCell::new(Mesh {
+        a_geometry: Arc<dyn Geometry>,
+        a_material: Arc<dyn Material>,
+    ) -> Arc<Mesh> {
+        Arc::new(Mesh {
             geometry: a_geometry,
             material: a_material,
-        }))
+        })
     }
 
-    fn gen_buffer_texture(&mut self) -> Box<dyn Texture> {
+    fn gen_buffer_texture(&mut self) -> Arc<dyn Texture> {
         let mut id: gl::types::GLuint = 0;
         unsafe {
             gl::GenTextures(1, &mut id);
         }
 
-        Box::new(TextureOpenGL {
+        Arc::new(TextureOpenGL {
             id: id,
             width: 0,
             height: 0,
         })
     }
 
-    fn gen_sampler(&mut self, a_texture: Rc<dyn Texture>) -> Box<dyn Sampler> {
+    fn gen_sampler(&mut self, a_texture: Arc<dyn Texture>) -> Box<dyn Sampler> {
         let sampler = SamplerOpenGL {
             name: String::from(""),
             texture: a_texture,
@@ -561,7 +559,7 @@ impl Renderer for RendererOpenGL {
         Box::new(sampler)
     }
 
-    fn load_texture(&mut self, a_image: &image::DynamicImage, a_texture: &mut Box<dyn Texture>) {
+    fn load_texture(&mut self, a_image: &image::DynamicImage, a_texture: Arc<dyn Texture>) {
         let texture = match a_texture.any().downcast_ref::<TextureOpenGL>() {
             Some(res) => res,
             None => panic!("Invalid texture"),
@@ -603,56 +601,18 @@ impl Renderer for RendererOpenGL {
         }
     }
 
-    fn use_program(&mut self, a_program: &Box<dyn Program>) {
-        let program = match a_program.any().downcast_ref::<ProgramOpenGL>() {
-            Some(res) => res,
-            None => return,
-        };
-
-        if self.program_id != program.id as gl::types::GLint {
-            self.program_id = program.id as gl::types::GLint;
-
-            unsafe {
-                gl::UseProgram(program.id);
-            }
-        }
-    }
-
-    fn draw_geometry(&mut self, a_geometry: &Box<dyn Geometry>) {
-        let geometry = match a_geometry.any().downcast_ref::<GeometryOpenGL>() {
-            Some(res) => res,
-            None => panic!("Invalid vertex"),
-        };
-
-        if self.vao != geometry.vao as gl::types::GLint {
-            self.vao = geometry.vao as gl::types::GLint;
-
-            unsafe {
-                gl::BindVertexArray(geometry.vao);
-            }
-        }
-
-        unsafe {
-            gl::DrawArrays(
-                gl::TRIANGLES, // mode
-                0,             // starting index in the enabled arrays
-                geometry.num,  // number of indices to be rendered
-            );
-        }
-    }
-
-    fn draw_mesh(&mut self, _camera: &Camera, a_mesh: Rc<RefCell<Mesh>>, _a_command_list: &mut Box<dyn CommandList>) {
+    fn draw_mesh(&mut self, _camera: &Camera, a_mesh: Arc<Mesh>, _a_command_list: &mut Box<dyn CommandList>) {
         let num_indices;
         {
-            let mesh = a_mesh.borrow_mut();
-            let geometry = match mesh.geometry.any().downcast_ref::<GeometryOpenGL>() {
+            //let mesh = a_mesh.borrow_mut();
+            let geometry = match a_mesh.geometry.any().downcast_ref::<GeometryOpenGL>() {
                 Some(res) => res,
                 None => panic!("Invalid vertex"),
             };
 
             num_indices = geometry.num;
 
-            self.use_program(mesh.material.get_program());
+            self.use_program(a_mesh.material.get_program());
 
             if self.vao != geometry.vao as gl::types::GLint {
                 self.vao = geometry.vao as gl::types::GLint;
@@ -664,16 +624,16 @@ impl Renderer for RendererOpenGL {
         }
 
         {
-            let mut mesh = a_mesh.borrow_mut();
-            let num_uniforms = mesh.material.num_uniforms();
+            //let mut mesh = a_mesh.borrow_mut();
+            let num_uniforms = a_mesh.material.num_uniforms();
             for i in 0..num_uniforms {
-                let uniform = mesh.material.get_uniform(i);
+                let uniform = a_mesh.material.get_uniform(i);
                 self.update_uniform(uniform);
             }
 
-            let num_samplers = mesh.material.num_samplers();
+            let num_samplers = a_mesh.material.num_samplers();
             for i in 0..num_samplers {
-                self.update_sampler(&mut mesh.material.get_sampler(i));
+                self.update_sampler(&mut a_mesh.material.get_sampler(i));
             }
 
             unsafe {
@@ -770,6 +730,21 @@ impl RendererOpenGL {
             vao: -1,
             program_id: -1,
         })
+    }
+
+    pub fn use_program(&mut self, a_program: Arc<dyn Program>) {
+        let program = match a_program.any().downcast_ref::<ProgramOpenGL>() {
+            Some(res) => res,
+            None => return,
+        };
+
+        if self.program_id != program.id as gl::types::GLint {
+            self.program_id = program.id as gl::types::GLint;
+
+            unsafe {
+                gl::UseProgram(program.id);
+            }
+        }
     }
 
     pub fn update_uniform(&self, a_uniform: &mut Box<dyn Uniform>) {

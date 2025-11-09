@@ -9,9 +9,8 @@ use crate::gpu::uniforms::*;
 use crate::gpu::mesh::*;
 
 use glam::*;
-use std::cell::RefCell;
-use std::rc::Rc;
-// use std::sync::Arc;
+//use std::rc::Rc;
+use std::sync::Arc;
 
 pub trait Renderer {
     fn name(&self) -> String;
@@ -25,7 +24,7 @@ pub trait Renderer {
     fn begin_frame(&mut self, a_clear: RendererClearType);
     fn end_frame(&mut self);
 
-    //clear immediatly
+    //clear immediately
     //= RendererClearColor | RendererClearDepth | RendererClearStencil
     fn clear(&mut self, a_clear: RendererClearType);
 
@@ -49,21 +48,21 @@ pub trait Renderer {
         &mut self,
         a_shader_type: ShaderType,
         a_source: &str,
-    ) -> Result<Box<dyn Shader>, RendererError>;
+    ) -> Result<Arc<dyn Shader>, RendererError>;
     fn load_shader_intermediate(
         &mut self,
         a_shader_type: ShaderType,
         a_source: &std::vec::Vec<u8>,
-    ) -> Result<Box<dyn Shader>, RendererError>;
+    ) -> Result<Arc<dyn Shader>, RendererError>;
     fn load_program_vert_frag(
         &mut self,
-        a_shader_vert: Box<dyn Shader>,
-        a_shader_frag: Box<dyn Shader>,
-    ) -> Result<Box<dyn Program>, RendererError>;
+        a_shader_vert: Arc<dyn Shader>,
+        a_shader_frag: Arc<dyn Shader>,
+    ) -> Result<Arc<dyn Program>, RendererError>;
 
     fn get_uniform(
         &mut self,
-        a_shader: &mut Box<dyn Program>,
+        a_shader: &mut Arc<dyn Program>,
         a_name: &str,
     ) -> Box<dyn UniformShader>;
     //fn set_uniform(&mut self, a_uniform: &Box<dyn Uniform>);
@@ -76,28 +75,25 @@ pub trait Renderer {
 
     fn submit_command_list(&mut self, a_command_list: Box<dyn CommandList>);
 
-    fn gen_buffer_vertex(&mut self, a_verts: &std::vec::Vec<f32>) -> Box<dyn Vertices>;
+    fn gen_buffer_vertex(&mut self, a_verts: &std::vec::Vec<f32>) -> Arc<dyn Vertices>;
 
-    fn gen_geometry(&mut self, a_buffer: &Box<dyn Vertices>) -> Box<dyn Geometry>;
+    fn gen_geometry(&mut self, a_buffer: Arc<dyn Vertices>) -> Arc<dyn Geometry>;
 
     fn gen_mesh(
         &mut self,
-        a_geometry: Box<dyn Geometry>,
-        a_material: Box<dyn Material>,
-    ) -> Rc<RefCell<Mesh>>;
+        a_geometry: Arc<dyn Geometry>,
+        a_material: Arc<dyn Material>,
+    ) -> Arc<Mesh>;
 
     //fn gen_instances(&mut self, Box<Mesh>, u32 a_num_instances) -> Box<Instances>;  //should return instances object, or vector of instances?
 
-    fn gen_buffer_texture(&mut self) -> Box<dyn Texture>;
+    fn gen_buffer_texture(&mut self) -> Arc<dyn Texture>;
 
-    fn gen_sampler(&mut self, a_texture: Rc<dyn Texture>) -> Box<dyn Sampler>;
+    fn gen_sampler(&mut self, a_texture: Arc<dyn Texture>) -> Box<dyn Sampler>;
 
-    fn load_texture(&mut self, a_image: &image::DynamicImage, a_texture: &mut Box<dyn Texture>);
-
-    fn use_program(&mut self, a_program: &Box<dyn Program>);
-
-    fn draw_geometry(&mut self, a_geometry: &Box<dyn Geometry>);
-    fn draw_mesh(&mut self, a_camera: &Camera, a_mesh: Rc<RefCell<Mesh>>, a_command_list: &mut Box<dyn CommandList>);
+    fn load_texture(&mut self, a_image: &image::DynamicImage, a_texture: Arc<dyn Texture>);
+    
+    fn draw_mesh(&mut self, a_camera: &Camera, a_mesh: Arc<Mesh>, a_command_list: &mut Box<dyn CommandList>);
 
     fn read_render_buffer(&mut self) -> Image;
 

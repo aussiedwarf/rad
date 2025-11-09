@@ -14,10 +14,9 @@ use crate::gpu::renderer::*;
 use crate::gpu::renderer_types::*;
 use crate::gpu::uniforms::*;
 
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::result::Result;
-// use std::sync::Arc;
+use std::sync::Arc;
+
 #[cfg(windows)]
 use std::vec::Vec;
 
@@ -116,7 +115,7 @@ impl Texture for TextureDirectX12 {
 
 pub struct SamplerDirectX12 {
     name: String,
-    texture: Rc<dyn Texture>,
+    texture: Arc<dyn Texture>,
 }
 
 impl Sampler for SamplerDirectX12 {
@@ -190,7 +189,7 @@ impl Renderer for RendererDirectX12 {
         &mut self,
         _a_shader_type: ShaderType,
         _a_source: &str,
-    ) -> Result<Box<dyn Shader>, RendererError> {
+    ) -> Result<Arc<dyn Shader>, RendererError> {
         return Err(RendererError::Unimplemented);
     }
 
@@ -198,21 +197,21 @@ impl Renderer for RendererDirectX12 {
         &mut self,
         _a_shader_type: ShaderType,
         _a_source: &std::vec::Vec<u8>,
-    ) -> Result<Box<dyn Shader>, RendererError> {
+    ) -> Result<Arc<dyn Shader>, RendererError> {
         return Err(RendererError::Unimplemented);
     }
 
     fn load_program_vert_frag(
         &mut self,
-        _a_shader_vert: Box<dyn Shader>,
-        _a_shader_frag: Box<dyn Shader>,
-    ) -> Result<Box<dyn Program>, RendererError> {
+        _a_shader_vert: Arc<dyn Shader>,
+        _a_shader_frag: Arc<dyn Shader>,
+    ) -> Result<Arc<dyn Program>, RendererError> {
         return Err(RendererError::Unimplemented);
     }
 
     fn get_uniform(
         &mut self,
-        _a_shader: &mut Box<dyn Program>,
+        _a_shader: &mut Arc<dyn Program>,
         a_name: &str,
     ) -> Box<dyn UniformShader> {
         Box::new(UniformShaderDirectX12 {
@@ -226,46 +225,42 @@ impl Renderer for RendererDirectX12 {
 
     fn submit_command_list(&mut self, _a_command_list: Box<dyn CommandList>) {}
 
-    fn gen_buffer_vertex(&mut self, _a_verts: &std::vec::Vec<f32>) -> Box<dyn Vertices> {
-        Box::new(VerticesDirectX12 {})
+    fn gen_buffer_vertex(&mut self, _a_verts: &std::vec::Vec<f32>) -> Arc<dyn Vertices> {
+        Arc::new(VerticesDirectX12 {})
     }
 
-    fn gen_geometry(&mut self, _a_buffer: &Box<dyn Vertices>) -> Box<dyn Geometry> {
-        Box::new(GeometryDirectX12 {})
+    fn gen_geometry(&mut self, _a_buffer: Arc<dyn Vertices>) -> Arc<dyn Geometry> {
+        Arc::new(GeometryDirectX12 {})
     }
 
     fn gen_mesh(
         &mut self,
-        a_geometry: Box<dyn Geometry>,
-        a_material: Box<dyn Material>,
-    ) -> Rc<RefCell<Mesh>> {
-        Rc::new(RefCell::new(Mesh {
+        a_geometry: Arc<dyn Geometry>,
+        a_material: Arc<dyn Material>,
+    ) -> Arc<Mesh> {
+        Arc::new(Mesh {
             geometry: a_geometry,
             material: a_material,
-        }))
+        })
     }
 
-    fn gen_buffer_texture(&mut self) -> Box<dyn Texture> {
-        Box::new(TextureDirectX12 {
+    fn gen_buffer_texture(&mut self) -> Arc<dyn Texture> {
+        Arc::new(TextureDirectX12 {
             width: 0,
             height: 0,
         })
     }
 
-    fn gen_sampler(&mut self, a_texture: Rc<dyn Texture>) -> Box<dyn Sampler> {
+    fn gen_sampler(&mut self, a_texture: Arc<dyn Texture>) -> Box<dyn Sampler> {
         Box::new(SamplerDirectX12 {
             name: String::from(""),
             texture: a_texture,
         })
     }
 
-    fn load_texture(&mut self, _a_image: &image::DynamicImage, _a_texture: &mut Box<dyn Texture>) {}
+    fn load_texture(&mut self, _a_image: &image::DynamicImage, _a_texture: Arc<dyn Texture>) {}
 
-    fn use_program(&mut self, _a_program: &Box<dyn Program>) {}
-
-    fn draw_geometry(&mut self, _a_geometry: &Box<dyn Geometry>) {}
-
-    fn draw_mesh(&mut self, _a_camera: &Camera, _a_mesh: Rc<RefCell<Mesh>>, _a_command_list: &mut Box<dyn CommandList>) {}
+    fn draw_mesh(&mut self, _a_camera: &Camera, _a_mesh: Arc<Mesh>, _a_command_list: &mut Box<dyn CommandList>) {}
 
     fn read_render_buffer(&mut self) -> Image {
         return Image {

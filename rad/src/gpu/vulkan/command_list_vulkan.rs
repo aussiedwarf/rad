@@ -6,11 +6,11 @@ use super::device::*;
 use super::fence::Fence;
 use super::semaphore::Semaphore;
 
-use std::cell::RefCell;
 use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct CommandListVulkan {
-    pub resources: std::vec::Vec<Rc<RefCell<dyn Resource>>>,
+    pub resources: std::vec::Vec<Arc<dyn Resource>>,
     pub command_buffer: ash::vk::CommandBuffer,
     pub fence: Rc<Fence>,
     pub semaphore: Rc<Semaphore>,
@@ -34,7 +34,7 @@ impl CommandListVulkan {
         });
 
         Box::new(Self {
-            resources: std::vec::Vec::<Rc<RefCell<dyn Resource>>>::new(),
+            resources: std::vec::Vec::<Arc<dyn Resource>>::new(),
             command_buffer: a_command_buffer,
             fence: fence,
             semaphore: semaphore,

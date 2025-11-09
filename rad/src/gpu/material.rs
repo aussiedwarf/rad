@@ -3,7 +3,7 @@ use crate::gpu::uniforms::*;
 
 use glam::*;
 // use std::rc::Rc;
-// use std::sync::Arc;
+use std::sync::Arc;
 
 pub trait Material {
     fn any(&self) -> &dyn std::any::Any;
@@ -19,7 +19,7 @@ pub trait Material {
     //fn set_texture(&self, a_index: usize, a_uniform: dyn Sampler);
     //fn add_texture(&self, a_uniform: dyn Sampler);
 
-    fn get_program(&self) -> &Box<dyn Program>;
+    fn get_program(&self) -> Arc<dyn Program>;
 }
 
 impl Material for MaterialBasic {
@@ -46,14 +46,14 @@ impl Material for MaterialBasic {
     //fn set_texture(&self, a_index: usize, a_uniform: dyn Sampler){}
     //fn add_texture(&self, a_uniform: dyn Sampler){}
 
-    fn get_program(&self) -> &Box<dyn Program> {
-        &self.program
+    fn get_program(&self) -> Arc<dyn Program> {
+        self.program.clone()
     }
 }
 
 #[allow(dead_code)]
 pub struct MaterialBasic {
-    program: Box<dyn Program>,
+    program: Arc<dyn Program>,
     uniforms: std::vec::Vec<Box<dyn Uniform>>,
     samplers: std::vec::Vec<Box<dyn Sampler>>,
 
@@ -62,7 +62,7 @@ pub struct MaterialBasic {
 
 #[allow(dead_code)]
 impl MaterialBasic {
-    pub fn new(a_program: Box<dyn Program>, a_sampler: Box<dyn Sampler>) -> Self {
+    pub fn new(a_program: Arc<dyn Program>, a_sampler: Box<dyn Sampler>) -> Self {
         let mut samplers: Vec<Box<dyn Sampler>> = std::vec::Vec::new();
         let mut uniforms: Vec<Box<dyn Uniform>> = std::vec::Vec::new();
 

@@ -2,6 +2,8 @@ use crate::gpu::material::*;
 use crate::gpu::resource::*;
 use crate::gpu::uniforms::*;
 
+use std::sync::Arc;
+
 pub trait Program {
     fn any(&self) -> &dyn std::any::Any;
 
@@ -25,8 +27,8 @@ pub trait Geometry {
 }
 
 pub struct Mesh {
-    pub geometry: Box<dyn Geometry>,
-    pub material: Box<dyn Material>,
+    pub geometry: Arc<dyn Geometry>,
+    pub material: Arc<dyn Material>,
 }
 
 impl Resource for Mesh {}
