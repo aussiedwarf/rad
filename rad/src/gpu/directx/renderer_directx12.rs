@@ -301,21 +301,30 @@ impl RendererDirectX12 {
             Err(res) => return Err(res),
         };
 
-        let mut info: sdl3::sys::SDL_SysWMinfo = unsafe { std::mem::zeroed() };
+        //let mut info: sdl3::sys::SDL_SysWMinfo = unsafe { std::mem::zeroed() };
         //sdl3::sys::SDL_VERSION(&mut info.version);
 
-        info.version.major = sdl3::version::version().major;
-        info.version.minor = sdl3::version::version().minor;
-        info.version.patch = sdl3::version::version().patch;
-        unsafe {
-            sdl3::sys::SDL_GetWindowWMInfo(a_window.raw() as *mut sdl3::sys::SDL_Window, &mut info)
-        };
+        // info.version.major = sdl3::version::version().major;
+        // info.version.minor = sdl3::version::version().minor;
+        // info.version.patch = sdl3::version::version().patch;
+        // unsafe {
+        //     sdl3::sys::SDL_GetWindowWMInfo(a_window.raw() as *mut sdl3::sys::SDL_Window, &mut info)
+        // };
 
         // rust sdl package is missing win in SDL_SysWMinfo
         // bindgen supposedly adds it but sdl does not then compile
-        let inner_info = unsafe { info.info.dummy };
-        let hwnd_ptr = inner_info.as_ptr() as *const windows::Win32::Foundation::HWND;
-        let hwnd = unsafe { std::ptr::read_unaligned(hwnd_ptr) };
+        // let inner_info = unsafe { info.info.dummy };
+        // let hwnd_ptr = inner_info.as_ptr() as *const windows::Win32::Foundation::HWND;
+
+        let wh = <sdl3::video::Window as raw_window_handle::HasWindowHandle>
+            ::window_handle(a_window)
+            .expect("window handle");
+        let hwnd: windows::Win32::Foundation::HWND = match wh.as_raw() {
+            raw_window_handle::RawWindowHandle::Win32(h) => windows::Win32::Foundation::HWND(h.hwnd.get() as _),
+            _ => panic!("not a Win32 window"),
+        };
+
+        //let hwnd = unsafe { std::ptr::read_unaligned(hwnd_ptr) };
 
         let frame_buffer_count = 2;
 

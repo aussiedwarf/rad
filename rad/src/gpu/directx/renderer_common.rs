@@ -9,19 +9,17 @@ use windows::Win32::Graphics::Dxgi::*;
 fn get_default_adapter(a_dxgi_factory: &IDXGIFactory6) -> Result<IDXGIAdapter1, RendererError> {
     for i in 0.. {
         match unsafe { a_dxgi_factory.EnumAdapters1(i) } {
-            Ok(res) => {
-                let mut desc = Default::default();
-                let desc_result = unsafe { res.GetDesc1(&mut desc) };
-                if desc_result.is_err() {
-                    return Err(RendererError::Error);
-                }
+            Ok(adapter) => {
+                let desc = match  unsafe { adapter.GetDesc1() } {
+                    Ok(v) => v,
+                    Err(_) => return Err(RendererError::Error),
+                };
 
-                if (DXGI_ADAPTER_FLAG(desc.Flags) & DXGI_ADAPTER_FLAG_SOFTWARE)
-                    != DXGI_ADAPTER_FLAG_NONE
+                if (desc.Flags & (DXGI_ADAPTER_FLAG_SOFTWARE.0 as u32)) != 0
                 {
                     continue;
                 }
-                return Ok(res);
+                return Ok(adapter);
             }
             Err(res) => match res.code() {
                 windows::Win32::Foundation::E_NOINTERFACE => {
@@ -44,19 +42,17 @@ fn get_default_adapter_by_gpu_preference(
         match unsafe {
             a_dxgi_factory.EnumAdapterByGpuPreference::<IDXGIAdapter1>(i, a_gpu_preference)
         } {
-            Ok(res) => {
-                let mut desc = Default::default();
-                let desc_result = unsafe { res.GetDesc1(&mut desc) };
-                if desc_result.is_err() {
-                    return Err(RendererError::Error);
-                }
+            Ok(adapter) => {
+                let desc = match  unsafe { adapter.GetDesc1() } {
+                    Ok(v) => v,
+                    Err(_) => return Err(RendererError::Error),
+                };
 
-                if (DXGI_ADAPTER_FLAG(desc.Flags) & DXGI_ADAPTER_FLAG_SOFTWARE)
-                    != DXGI_ADAPTER_FLAG_NONE
+                if (desc.Flags & (DXGI_ADAPTER_FLAG_SOFTWARE.0 as u32)) != 0
                 {
                     continue;
                 }
-                return Ok(res);
+                return Ok(adapter);
             }
             Err(res) => match res.code() {
                 windows::Win32::Foundation::E_NOINTERFACE => {
@@ -108,7 +104,7 @@ pub fn get_factory() -> Result<IDXGIFactory6, RendererError> {
     let dxgi_factory_flags = if cfg!(debug_assertions) {
         DXGI_CREATE_FACTORY_DEBUG
     } else {
-        0
+        DXGI_CREATE_FACTORY_FLAGS(0)
     };
 
     match unsafe { CreateDXGIFactory2::<IDXGIFactory6>(dxgi_factory_flags) } {
